@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KPSS Quiz Arena</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>KPSS Quiz Arena</h1>
+      <p>Oyun oynayarak KPSS çalış: tekli mod + arkadaş düellosu.</p>
+    </header>
+
+    <main class="container">
+      <section class="card">
+        <h2>1) Mod Seçimi</h2>
+        <div class="mode-buttons">
+          <button id="soloModeBtn" class="btn primary">Tekli Çalışma</button>
+          <button id="duelModeBtn" class="btn">Arkadaşla Düello</button>
+        </div>
+      </section>
+
+      <section id="categorySection" class="card hidden">
+        <h2>2) Kategori Seç</h2>
+        <p class="muted">Hem genel kategori hem KPSS alt başlıklarına göre filtrele.</p>
+        <div class="category-grid">
+          <label>
+            Ana Kategori
+            <select id="mainCategorySelect"></select>
+          </label>
+          <label>
+            Alt Kategori
+            <select id="subCategorySelect"></select>
+          </label>
+          <label>
+            Zorluk
+            <select id="difficultySelect">
+              <option value="all">Tümü</option>
+              <option value="1">1 (Kolay)</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5 (Zor)</option>
+            </select>
+          </label>
+        </div>
+        <button id="startQuizBtn" class="btn primary">Teste Başla</button>
+      </section>
+
+      <section id="duelSection" class="card hidden">
+        <h2>2) Düello</h2>
+        <p class="muted">Kod üret, arkadaşınla paylaş, sonra sonuçları karşılaştır.</p>
+        <div class="duel-grid">
+          <div>
+            <h3>Davet Oluştur</h3>
+            <button id="createInviteBtn" class="btn">Davet Kodu Üret</button>
+            <p id="inviteCodeDisplay" class="code-box">Kod henüz oluşturulmadı.</p>
+          </div>
+          <div>
+            <h3>Davet Koduna Katıl</h3>
+            <label>
+              Kod
+              <input id="joinCodeInput" type="text" placeholder="Örn: KPSS-AB12" />
+            </label>
+            <button id="joinInviteBtn" class="btn">Odaya Katıl</button>
+            <p id="joinStatus" class="muted"></p>
+          </div>
+        </div>
+        <button id="startDuelQuizBtn" class="btn primary">Düello Sorusuna Başla</button>
+      </section>
+
+      <section id="quizSection" class="card hidden">
+        <div class="row-between">
+          <h2 id="quizTitle">Soru</h2>
+          <span id="progressBadge" class="badge">1/5</span>
+        </div>
+        <p id="questionMeta" class="muted"></p>
+        <h3 id="questionText"></h3>
+        <div id="choicesContainer" class="choices"></div>
+        <p id="feedbackText"></p>
+        <p id="explanationText" class="explanation"></p>
+        <div class="actions">
+          <button id="nextQuestionBtn" class="btn hidden">Sonraki Soru</button>
+        </div>
+      </section>
+
+      <section id="resultSection" class="card hidden">
+        <h2>Sonuç</h2>
+        <p id="resultSummary"></p>
+        <div id="duelResultBox" class="hidden"></div>
+        <button id="restartBtn" class="btn primary">Yeniden Oyna</button>
+      </section>
+
+      <section class="card">
+        <h2>Soru Havuzu Mantığı (Canlı Demo)</h2>
+        <ul>
+          <li>Kategori ağacı: Ana kategori + alt kategori</li>
+          <li>Metadata: zorluk, etiketler, açıklama, kalite skoru</li>
+          <li>Düello: aynı soru setini invite code ile paylaşabilme</li>
+        </ul>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

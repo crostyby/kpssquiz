@@ -1,0 +1,123 @@
+:root {
+  --bg: #0f172a;
+  --card: #111827;
+  --text: #f3f4f6;
+  --muted: #9ca3af;
+  --accent: #22c55e;
+  --accent-2: #3b82f6;
+  --danger: #ef4444;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: linear-gradient(180deg, #0b1024 0%, var(--bg) 100%);
+  color: var(--text);
+}
+
+.topbar {
+  padding: 2rem 1rem 1rem;
+  text-align: center;
+}
+
+.topbar h1 { margin: 0 0 0.5rem; }
+.topbar p { margin: 0; color: var(--muted); }
+
+.container {
+  width: min(950px, 92vw);
+  margin: 0 auto 2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.card {
+  background: rgba(17, 24, 39, 0.92);
+  border: 1px solid #374151;
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.hidden { display: none !important; }
+
+.btn {
+  border: none;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #374151;
+  color: white;
+  font-weight: 600;
+}
+
+.btn.primary { background: var(--accent-2); }
+.btn:hover { opacity: 0.9; }
+
+.mode-buttons, .actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.category-grid, .duel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+}
+
+select, input {
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #4b5563;
+  background: #111827;
+  color: white;
+}
+
+.choices {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.choice-btn {
+  text-align: left;
+  background: #1f2937;
+  border: 1px solid #374151;
+}
+
+.choice-btn.correct { background: #14532d; border-color: #16a34a; }
+.choice-btn.wrong { background: #7f1d1d; border-color: var(--danger); }
+
+.muted { color: var(--muted); }
+.badge {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.code-box {
+  padding: 0.6rem;
+  border-radius: 8px;
+  background: #0b1220;
+  border: 1px dashed #475569;
+}
+
+.explanation {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.6rem;
+}
