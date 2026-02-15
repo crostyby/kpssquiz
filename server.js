@@ -5,6 +5,9 @@ const { randomUUID } = require('crypto');
 
 const PORT = process.env.PORT || 4173;
 const DB_PATH = path.join(__dirname, 'data.json');
+const REGULAR_QUESTION_COUNT = 10;
+const QUESTION_DURATION_MS = 10_000;
+const COUNTDOWN_MS = 4_000; // 3-2-1-0
 
 const seedQuestions = [
   { id: 'Q1', mainCategory: 'Genel Kültür', subCategory: 'Tarih > Osmanlı', difficulty: 2, tags: ['tarih','osmanli'], stem: 'Lale Devri hangi padişah döneminde yaşanmıştır?', choices: ['III. Ahmed','IV. Murad','II. Mahmud','I. Selim'], correctIndex: 0, explanation: 'Lale Devri, III. Ahmed döneminde (1718-1730) yaşanmıştır.', qualityScore: 4.6 },
@@ -61,9 +64,7 @@ function parseBody(req) {
     let raw = '';
     req.on('data', (chunk) => {
       raw += chunk;
-      if (raw.length > 1e6) {
-        reject(new Error('Payload too large'));
-      }
+      if (raw.length > 1e6) reject(new Error('Payload too large'));
     });
     req.on('end', () => {
       if (!raw) return resolve({});
@@ -85,17 +86,134 @@ function shuffle(list) {
   return arr;
 }
 
-function sanitizeQuestion(q) {
-  const { correctIndex, ...rest } = q;
-  return rest;
-}
-
 function staticFile(res, filePath) {
   if (!fs.existsSync(filePath)) return notFound(res);
   const ext = path.extname(filePath);
   const map = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8' };
   res.writeHead(200, { 'Content-Type': map[ext] || 'text/plain; charset=utf-8' });
   fs.createReadStream(filePath).pipe(res);
+}
+
+function pickQuestionIds(bank, count) {
+  if (!bank.length) return [];
+  const shuffled = shuffle(bank.map((q) => q.id));
+  const ids = [];
+  while (ids.length < count) {
+    ids.push(shuffled[ids.length % shuffled.length]);
+  }
+  return ids;
+}
+
+function getQuestionById(db, id) {
+  return db.questions.find((q) => q.id === id) || null;
+}
+
+function getQuestionForIndex(duel, db, index) {
+  if (index < REGULAR_QUESTION_COUNT) {
+    return getQuestionById(db, duel.regularQuestionIds[index]);
+  }
+  const suddenIdx = (index - REGULAR_QUESTION_COUNT) % duel.suddenQuestionIds.length;
+  return getQuestionById(db, duel.suddenQuestionIds[suddenIdx]);
+}
+
+function isCorrectForIndex(duel, db, index, choiceIndex) {
+  const q = getQuestionForIndex(duel, db, index);
+  if (!q) return false;
+  return q.correctIndex === choiceIndex;
+}
+
+function computeRegularScores(duel, db) {
+  const scores = {};
+  (duel.participants || []).forEach((name) => {
+    const answers = duel.playerAnswers?.[name] || [];
+    let score = 0;
+    for (let i = 0; i < REGULAR_QUESTION_COUNT; i += 1) {
+      if (isCorrectForIndex(duel, db, i, answers[i])) score += 1;
+    }
+    scores[name] = score;
+  });
+  return scores;
+}
+
+function computeCurrentIndex(duel, now) {
+  if (!duel.questionStartAt || now < duel.questionStartAt) return -1;
+  if (duel.phase === 'question') {
+    return Math.floor((now - duel.questionStartAt) / QUESTION_DURATION_MS);
+  }
+  if (duel.phase === 'sudden_death') {
+    const suddenElapsed = now - duel.suddenStartAt;
+    return REGULAR_QUESTION_COUNT + Math.floor(suddenElapsed / QUESTION_DURATION_MS);
+  }
+  return -1;
+}
+
+function updateDuelState(duel, db) {
+  const now = Date.now();
+  if (!duel.phase) duel.phase = 'waiting';
+
+  if (duel.phase === 'waiting' && duel.participants.length === 2) {
+    duel.phase = 'countdown';
+    duel.countdownStartAt = now;
+    duel.questionStartAt = now + COUNTDOWN_MS;
+  }
+
+  if (duel.phase === 'countdown' && now >= duel.questionStartAt) {
+    duel.phase = 'question';
+  }
+
+  const regularEndAt = (duel.questionStartAt || now) + REGULAR_QUESTION_COUNT * QUESTION_DURATION_MS;
+
+  if (duel.phase === 'question' && now >= regularEndAt) {
+    const scores = computeRegularScores(duel, db);
+    const [a, b] = duel.participants;
+    if (scores[a] !== scores[b]) {
+      duel.phase = 'finished';
+      duel.winner = scores[a] > scores[b] ? a : b;
+      duel.finalScores = scores;
+    } else {
+      duel.phase = 'sudden_death';
+      duel.suddenStartAt = regularEndAt;
+    }
+  }
+
+  if (duel.phase === 'sudden_death') {
+    const [a, b] = duel.participants;
+    const completedRounds = Math.floor((now - duel.suddenStartAt) / QUESTION_DURATION_MS);
+    for (let round = 0; round < completedRounds; round += 1) {
+      const idx = REGULAR_QUESTION_COUNT + round;
+      const aAnswer = duel.playerAnswers?.[a]?.[idx];
+      const bAnswer = duel.playerAnswers?.[b]?.[idx];
+      const aCorrect = isCorrectForIndex(duel, db, idx, aAnswer);
+      const bCorrect = isCorrectForIndex(duel, db, idx, bAnswer);
+      if (aCorrect && !bCorrect) {
+        duel.phase = 'finished';
+        duel.winner = a;
+        break;
+      }
+      if (bCorrect && !aCorrect) {
+        duel.phase = 'finished';
+        duel.winner = b;
+        break;
+      }
+    }
+
+    if (duel.phase === 'finished') {
+      const regularScores = computeRegularScores(duel, db);
+      duel.finalScores = {
+        ...regularScores,
+        [duel.winner]: (regularScores[duel.winner] || 0) + 1,
+      };
+    }
+  }
+
+  return duel;
+}
+
+function getAnswerStatus(duel, currentIndex) {
+  return (duel.participants || []).map((name) => ({
+    name,
+    answered: duel.playerAnswers?.[name]?.[currentIndex] !== undefined,
+  }));
 }
 
 const server = http.createServer(async (req, res) => {
@@ -113,7 +231,7 @@ const server = http.createServer(async (req, res) => {
       grouped[q.mainCategory].add(q.subCategory);
     });
     const categories = Object.entries(grouped).map(([main, subs]) => ({ mainCategory: main, subCategories: [...subs].sort() }));
-    return json(res, 200, { categories: categories.sort((a,b)=>a.mainCategory.localeCompare(b.mainCategory,'tr')) });
+    return json(res, 200, { categories: categories.sort((a, b) => a.mainCategory.localeCompare(b.mainCategory, 'tr')) });
   }
 
   if (req.method === 'GET' && url.pathname === '/api/questions') {
@@ -126,82 +244,125 @@ const server = http.createServer(async (req, res) => {
       const diffOk = difficulty === 'all' || q.difficulty === Number(difficulty);
       return mainOk && subOk && diffOk;
     });
-    pool = shuffle(pool).slice(0, 5).map(sanitizeQuestion);
+    pool = shuffle(pool).slice(0, 5).map(({ correctIndex, ...rest }) => rest);
     return json(res, 200, { questions: pool });
   }
 
   if (req.method === 'POST' && url.pathname === '/api/duels') {
     const body = await parseBody(req).catch((e) => json(res, 400, { error: e.message }));
     if (!body || res.writableEnded) return;
+
     const hostName = (body.hostName || 'Oyuncu 1').toString().slice(0, 30);
-    const code = `KPSS-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
-    const questionIds = shuffle(db.questions).slice(0, 5).map((q) => q.id);
-    const duel = { id: randomUUID(), code, hostName, questionIds, participants: [hostName], submissions: [], createdAt: Date.now() };
+    const code = `KPSS-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const duel = {
+      id: randomUUID(),
+      code,
+      hostName,
+      participants: [hostName],
+      regularQuestionIds: pickQuestionIds(db.questions, REGULAR_QUESTION_COUNT),
+      suddenQuestionIds: pickQuestionIds(db.questions, 50),
+      playerAnswers: { [hostName]: [] },
+      phase: 'waiting',
+      createdAt: Date.now(),
+      winner: null,
+      finalScores: null,
+    };
     db.duels.push(duel);
     saveDb(db);
-    return json(res, 201, { code, duelId: duel.id, questionCount: duel.questionIds.length });
+    return json(res, 201, { code, duelId: duel.id });
+  }
+
+  if (req.method === 'POST' && url.pathname.match(/^\/api\/duels\/[^/]+\/join$/)) {
+    const code = decodeURIComponent(url.pathname.split('/')[3]);
+    const duel = db.duels.find((d) => d.code === code);
+    if (!duel) return json(res, 404, { error: 'Düello bulunamadı' });
+
+    const body = await parseBody(req).catch((e) => json(res, 400, { error: e.message }));
+    if (!body || res.writableEnded) return;
+
+    const name = (body.name || 'Oyuncu').toString().slice(0, 30);
+    if (!duel.participants.includes(name)) {
+      if (duel.participants.length >= 2) return json(res, 400, { error: 'Oda dolu (maksimum 2 oyuncu).' });
+      duel.participants.push(name);
+      duel.playerAnswers[name] = [];
+    }
+
+    updateDuelState(duel, db);
+    saveDb(db);
+    return json(res, 200, { code: duel.code, participants: duel.participants, phase: duel.phase });
+  }
+
+  if (req.method === 'POST' && url.pathname.match(/^\/api\/duels\/[^/]+\/answer$/)) {
+    const code = decodeURIComponent(url.pathname.split('/')[3]);
+    const duel = db.duels.find((d) => d.code === code);
+    if (!duel) return json(res, 404, { error: 'Düello bulunamadı' });
+
+    const body = await parseBody(req).catch((e) => json(res, 400, { error: e.message }));
+    if (!body || res.writableEnded) return;
+
+    const name = (body.name || '').toString().slice(0, 30);
+    const choiceIndex = Number(body.choiceIndex);
+    if (!duel.participants.includes(name)) return json(res, 400, { error: 'Oyuncu odada değil.' });
+
+    updateDuelState(duel, db);
+    if (!['question', 'sudden_death'].includes(duel.phase)) return json(res, 400, { error: 'Cevap için uygun aşama değil.' });
+
+    const currentIndex = computeCurrentIndex(duel, Date.now());
+    if (currentIndex < 0) return json(res, 400, { error: 'Soru henüz başlamadı.' });
+
+    duel.playerAnswers[name] = duel.playerAnswers[name] || [];
+    if (duel.playerAnswers[name][currentIndex] === undefined) {
+      duel.playerAnswers[name][currentIndex] = Number.isFinite(choiceIndex) ? choiceIndex : null;
+    }
+
+    updateDuelState(duel, db);
+    saveDb(db);
+    return json(res, 200, { ok: true });
   }
 
   if (req.method === 'GET' && url.pathname.match(/^\/api\/duels\/[^/]+$/)) {
     const code = decodeURIComponent(url.pathname.split('/')[3]);
     const duel = db.duels.find((d) => d.code === code);
     if (!duel) return json(res, 404, { error: 'Düello bulunamadı' });
-    const questions = duel.questionIds
-      .map((id) => db.questions.find((q) => q.id === id))
-      .filter(Boolean)
-      .map(sanitizeQuestion);
-    return json(res, 200, { code: duel.code, questions, participants: duel.participants || [], submissions: duel.submissions });
-  }
 
-
-  if (req.method === 'POST' && url.pathname.match(/^\/api\/duels\/[^/]+\/join$/)) {
-    const code = decodeURIComponent(url.pathname.split('/')[3]);
-    const duel = db.duels.find((d) => d.code === code);
-    if (!duel) return json(res, 404, { error: 'Düello bulunamadı' });
-    const body = await parseBody(req).catch((e) => json(res, 400, { error: e.message }));
-    if (!body || res.writableEnded) return;
-    const name = (body.name || 'Oyuncu').toString().slice(0, 30);
-    duel.participants = duel.participants || [];
-    if (!duel.participants.includes(name)) duel.participants.push(name);
+    updateDuelState(duel, db);
     saveDb(db);
-    return json(res, 200, { code: duel.code, participants: duel.participants });
-  }
 
-  if (req.method === 'POST' && url.pathname.match(/^\/api\/duels\/[^/]+\/submit$/)) {
-    const parts = url.pathname.split('/');
-    const code = decodeURIComponent(parts[3]);
-    const duel = db.duels.find((d) => d.code === code);
-    if (!duel) return json(res, 404, { error: 'Düello bulunamadı' });
+    const now = Date.now();
+    const scores = computeRegularScores(duel, db);
 
-    const body = await parseBody(req).catch((e) => json(res, 400, { error: e.message }));
-    if (!body || res.writableEnded) return;
-
-    const name = (body.name || 'Oyuncu').toString().slice(0, 30);
-    const answers = Array.isArray(body.answers) ? body.answers : [];
-
-    let score = 0;
-    let streak = 0;
-    duel.questionIds.forEach((id, idx) => {
-      const q = db.questions.find((item) => item.id === id);
-      if (!q) return;
-      if (answers[idx] === q.correctIndex) {
-        streak += 1;
-        score += 100 + (streak - 1) * 10;
-      } else {
-        streak = 0;
+    let currentIndex = -1;
+    let timerLeft = null;
+    let question = null;
+    if (['question', 'sudden_death'].includes(duel.phase)) {
+      currentIndex = computeCurrentIndex(duel, now);
+      const phaseStart = duel.phase === 'question' ? duel.questionStartAt : duel.suddenStartAt;
+      const elapsed = now - phaseStart;
+      timerLeft = Math.max(0, 10 - Math.floor((elapsed % QUESTION_DURATION_MS) / 1000));
+      const q = getQuestionForIndex(duel, db, currentIndex);
+      if (q) {
+        const { correctIndex, ...rest } = q;
+        question = { ...rest, index: currentIndex + 1 };
       }
-    });
-
-    const existing = duel.submissions.find((s) => s.name === name);
-    if (existing) {
-      existing.score = score;
-      existing.updatedAt = Date.now();
-    } else {
-      duel.submissions.push({ name, score, updatedAt: Date.now() });
     }
-    duel.submissions.sort((a, b) => b.score - a.score);
-    saveDb(db);
-    return json(res, 200, { score, leaderboard: duel.submissions });
+
+    const countdown = duel.phase === 'countdown'
+      ? Math.max(0, 3 - Math.floor((now - duel.countdownStartAt) / 1000))
+      : null;
+
+    return json(res, 200, {
+      code: duel.code,
+      phase: duel.phase,
+      participants: duel.participants,
+      scores,
+      winner: duel.winner,
+      finalScores: duel.finalScores,
+      countdown,
+      timerLeft,
+      totalQuestions: REGULAR_QUESTION_COUNT,
+      question,
+      answerStatus: currentIndex >= 0 ? getAnswerStatus(duel, currentIndex) : [],
+    });
   }
 
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {

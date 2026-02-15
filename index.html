@@ -50,12 +50,17 @@
 
       <section id="duelSection" class="card hidden">
         <h2>2) Düello</h2>
-        <p class="muted">Kod üret, arkadaşınla paylaş, sonra sonuçları karşılaştır.</p>
+        <p class="muted">Oyuncu adını yaz, oda oluştur veya kodla katıl. Kod doğruysa odaya girilir.</p>
+        <label>
+          Oyuncu Adı
+          <input id="playerNameInput" type="text" placeholder="Örn: Bera" />
+        </label>
         <div class="duel-grid">
           <div>
             <h3>Davet Oluştur</h3>
             <button id="createInviteBtn" class="btn">Davet Kodu Üret</button>
             <p id="inviteCodeDisplay" class="code-box">Kod henüz oluşturulmadı.</p>
+            <button id="copyInviteBtn" class="btn">Kodu Kopyala</button>
           </div>
           <div>
             <h3>Davet Koduna Katıl</h3>

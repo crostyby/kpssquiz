@@ -1,9 +1,5 @@
 const state = {
   mode: 'solo',
-  playerName: localStorage.getItem('kpss_player_name') || '',
-  selectedMainCategory: 'all',
-  selectedSubCategory: 'all',
-  selectedDifficulty: 'all',
   categories: [],
   questions: [],
   answers: [],
@@ -21,11 +17,13 @@ const el = {
   difficultySelect: document.getElementById('difficultySelect'),
   startQuizBtn: document.getElementById('startQuizBtn'),
   createInviteBtn: document.getElementById('createInviteBtn'),
+  copyInviteBtn: document.getElementById('copyInviteBtn'),
   inviteCodeDisplay: document.getElementById('inviteCodeDisplay'),
   joinCodeInput: document.getElementById('joinCodeInput'),
   joinStatus: document.getElementById('joinStatus'),
   joinInviteBtn: document.getElementById('joinInviteBtn'),
   startDuelQuizBtn: document.getElementById('startDuelQuizBtn'),
+  playerNameInput: document.getElementById('playerNameInput'),
   quizSection: document.getElementById('quizSection'),
   quizTitle: document.getElementById('quizTitle'),
   progressBadge: document.getElementById('progressBadge'),
@@ -40,6 +38,15 @@ const el = {
   duelResultBox: document.getElementById('duelResultBox'),
   restartBtn: document.getElementById('restartBtn'),
 };
+
+function getPlayerName() {
+  const input = (el.playerNameInput.value || '').trim().slice(0, 30);
+  if (!input) {
+    alert('Lütfen önce oyuncu adını yaz.');
+    return null;
+  }
+  return input;
+}
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -75,16 +82,6 @@ function setMode(mode) {
   el.quizSection.classList.add('hidden');
   el.resultSection.classList.add('hidden');
   el.duelSection.classList.toggle('hidden', mode !== 'duel');
-}
-
-function askName(fallback) {
-  const input = prompt('Oyuncu adın?', state.playerName || fallback);
-  if (!input) return null;
-  const name = input.trim().slice(0, 30);
-  if (!name) return null;
-  state.playerName = name;
-  localStorage.setItem('kpss_player_name', name);
-  return name;
 }
 
 async function startSolo() {
@@ -132,7 +129,7 @@ function renderQuestion() {
         if (i === q.correctIndex) item.classList.add('correct');
         if (i === idx && idx !== q.correctIndex) item.classList.add('wrong');
       });
-      if (idx === q.correctIndex) state.score += 100;
+      if (idx === q.correctIndex) state.score += 1;
       el.feedbackText.textContent = idx === q.correctIndex ? '✅ Doğru!' : '❌ Yanlış';
       el.explanationText.textContent = `Açıklama: ${q.explanation}`;
       el.nextQuestionBtn.classList.remove('hidden');
@@ -154,7 +151,7 @@ function nextSoloQuestion() {
 }
 
 async function createInvite() {
-  const hostName = askName('Oyuncu 1');
+  const hostName = getPlayerName();
   if (!hostName) return;
   const data = await api('/api/duels', {
     method: 'POST',
@@ -162,24 +159,40 @@ async function createInvite() {
   });
   state.duelCode = data.code;
   el.inviteCodeDisplay.textContent = `Davet kodu: ${data.code}`;
-  el.joinStatus.textContent = 'Oda oluşturuldu. "Düello ekranını aç" ile yeni pencere aç.';
+  el.joinCodeInput.value = data.code;
+  el.joinStatus.textContent = 'Oda oluşturuldu. Kodu tek tuşla kopyalayabilirsin.';
+}
+
+async function copyInviteCode() {
+  if (!state.duelCode) {
+    alert('Önce oda oluşturmalısın.');
+    return;
+  }
+  await navigator.clipboard.writeText(state.duelCode);
+  el.joinStatus.textContent = 'Kod panoya kopyalandı ✅';
 }
 
 async function joinInvite() {
-  const code = el.joinCodeInput.value.trim().toUpperCase();
-  if (!code) return;
-  const data = await api(`/api/duels/${encodeURIComponent(code)}`);
-  state.duelCode = data.code;
-  el.inviteCodeDisplay.textContent = `Aktif oda: ${data.code}`;
-  el.joinStatus.textContent = 'Odaya katıldın. "Düello ekranını aç" butonuna bas.';
+  const code = (el.joinCodeInput.value || '').trim().toUpperCase();
+  const name = getPlayerName();
+  if (!code || !name) return;
+
+  await api(`/api/duels/${encodeURIComponent(code)}/join`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+
+  state.duelCode = code;
+  el.inviteCodeDisplay.textContent = `Aktif oda: ${code}`;
+  el.joinStatus.textContent = 'Odaya başarıyla katıldın. Düello ekranını açabilirsin.';
 }
 
 async function openDuelWindow() {
   if (!state.duelCode) {
-    alert('Önce bir düello kodu oluştur veya katıl.');
+    alert('Önce oda oluştur veya koda katıl.');
     return;
   }
-  const name = askName('Oyuncu');
+  const name = getPlayerName();
   if (!name) return;
 
   await api(`/api/duels/${encodeURIComponent(state.duelCode)}/join`, {
@@ -202,6 +215,7 @@ el.startQuizBtn.addEventListener('click', () => startSolo().catch((e) => alert(e
 el.nextQuestionBtn.addEventListener('click', nextSoloQuestion);
 el.restartBtn.addEventListener('click', resetApp);
 el.createInviteBtn.addEventListener('click', () => createInvite().catch((e) => alert(e.message)));
+el.copyInviteBtn.addEventListener('click', () => copyInviteCode().catch((e) => alert(e.message)));
 el.joinInviteBtn.addEventListener('click', () => joinInvite().catch((e) => alert(e.message)));
 el.startDuelQuizBtn.addEventListener('click', () => openDuelWindow().catch((e) => alert(e.message)));
 

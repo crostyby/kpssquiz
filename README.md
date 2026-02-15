@@ -7,7 +7,10 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 - Arkadaşla düello (davet kodu)
 - Aynı odaya giren oyuncular için **yeni düello penceresi** (`duel.html`)
 - Düello odasında iki oyuncunun aynı ekranda görünmesi (katılımcı listesi)
-- Her soru için 10 saniye geri sayım, süre bitince otomatik yeni soruya geçiş
+- Düello başında 3-2-1-0 geri sayım
+- Her soru için 10 saniye ortak sayaç, süre bitince otomatik yeni soruya geçiş
+- Bir oyuncu erken cevap verirse diğer oyuncuya küçük alanda gösterim
+- 10 soru sonunda eşitse uzatma (ani ölüm): ilk yanlış yapan kaybeder
 - Sunucu tarafında soru seçimi ve skor hesaplama
 - Kategori + alt kategori + zorluk filtreleme
 - Düello liderlik tablosu
@@ -23,8 +26,9 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 ## Düello akışı
 1. Oyuncu A: `Arkadaşla Düello` → `Davet Kodu Üret`
 2. Oyuncu B: kodla odaya katılır
-3. İki oyuncu da `Düello ekranını aç (yeni pencere)` butonuna basar
-4. Açılan yeni pencerede katılımcı listesi + 10 saniyelik geri sayımla sorular oynanır
+3. Oluşturan kişi kodu tek tuşla kopyalar, diğer oyuncu bu kodu "Odaya Katıl" alanına yazar
+4. İki oyuncu da `Düello ekranını aç (yeni pencere)` butonuna basar
+5. Ekranda isimler yan yana görünür, 3-2-1-0 sonrası düello başlar
 
 ## API uçları
 - `GET /api/health`
@@ -33,7 +37,7 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 - `POST /api/duels`
 - `GET /api/duels/:code`
 - `POST /api/duels/:code/join`
-- `POST /api/duels/:code/submit`
+- `POST /api/duels/:code/answer`
 
 ## Dosya yapısı
 - `server.js`: static sunum + API + veri katmanı

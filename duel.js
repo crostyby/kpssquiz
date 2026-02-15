@@ -5,26 +5,24 @@ const name = params.get('name') || 'Oyuncu';
 const el = {
   roomTitle: document.getElementById('roomTitle'),
   roomMeta: document.getElementById('roomMeta'),
-  participantsList: document.getElementById('participantsList'),
+  leftPlayer: document.getElementById('leftPlayer'),
+  rightPlayer: document.getElementById('rightPlayer'),
+  phaseText: document.getElementById('phaseText'),
   countdownText: document.getElementById('countdownText'),
+  answeredEarlyText: document.getElementById('answeredEarlyText'),
   duelQuizSection: document.getElementById('duelQuizSection'),
   duelProgress: document.getElementById('duelProgress'),
   duelQuestionMeta: document.getElementById('duelQuestionMeta'),
   duelQuestionText: document.getElementById('duelQuestionText'),
   duelChoices: document.getElementById('duelChoices'),
-  duelFeedback: document.getElementById('duelFeedback'),
   duelResultSection: document.getElementById('duelResultSection'),
-  duelScore: document.getElementById('duelScore'),
-  duelLeaderboard: document.getElementById('duelLeaderboard'),
+  duelWinner: document.getElementById('duelWinner'),
+  duelScoreBoard: document.getElementById('duelScoreBoard'),
 };
 
 const state = {
-  questions: [],
-  answers: [],
-  idx: 0,
-  selected: null,
-  timer: 10,
-  tickHandle: null,
+  lastQuestionIndex: null,
+  answeredForCurrent: false,
 };
 
 async function api(path, options = {}) {
@@ -37,77 +35,110 @@ async function api(path, options = {}) {
   return data;
 }
 
-function renderParticipants(list) {
-  el.participantsList.innerHTML = list.map((p) => `<li>${p}</li>`).join('');
+function renderPlayers(participants) {
+  el.leftPlayer.textContent = `Oyuncu 1: ${participants[0] || '-'}`;
+  el.rightPlayer.textContent = `Oyuncu 2: ${participants[1] || '-'}`;
 }
 
-function renderQuestion() {
-  const q = state.questions[state.idx];
-  if (!q) return;
-  state.selected = null;
-  state.timer = 10;
+function renderQuestion(room) {
+  const q = room.question;
+  if (!q) {
+    el.duelQuizSection.classList.add('hidden');
+    return;
+  }
+
+  if (state.lastQuestionIndex !== q.index) {
+    state.lastQuestionIndex = q.index;
+    state.answeredForCurrent = false;
+  }
+
   el.duelQuizSection.classList.remove('hidden');
-  el.duelProgress.textContent = `${state.idx + 1}/${state.questions.length}`;
+  el.duelProgress.textContent = `${Math.min(q.index, room.totalQuestions)}/${room.totalQuestions}`;
   el.duelQuestionMeta.textContent = `${q.mainCategory} • ${q.subCategory} • Zorluk ${q.difficulty}`;
   el.duelQuestionText.textContent = q.stem;
-  el.duelFeedback.textContent = '';
-  el.countdownText.textContent = '10';
 
-  el.duelChoices.innerHTML = '';
-  q.choices.forEach((choice, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'btn choice-btn';
-    btn.textContent = choice;
-    btn.addEventListener('click', () => {
-      if (state.selected !== null) return;
-      state.selected = i;
-      state.answers[state.idx] = i;
-      [...el.duelChoices.querySelectorAll('button')].forEach((b, idx) => {
-        b.disabled = true;
-        if (idx === q.correctIndex) b.classList.add('correct');
-        if (idx === i && i !== q.correctIndex) b.classList.add('wrong');
+  const answeredNames = (room.answerStatus || []).filter((x) => x.answered).map((x) => x.name);
+  el.answeredEarlyText.textContent = answeredNames.length ? `Erken cevaplayan: ${answeredNames.join(', ')}` : '';
+
+  if (el.duelChoices.dataset.qidx !== String(q.index)) {
+    el.duelChoices.dataset.qidx = String(q.index);
+    el.duelChoices.innerHTML = '';
+    q.choices.forEach((choice, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'btn choice-btn';
+      btn.textContent = choice;
+      btn.addEventListener('click', async () => {
+        if (state.answeredForCurrent) return;
+        state.answeredForCurrent = true;
+        [...el.duelChoices.querySelectorAll('button')].forEach((b) => { b.disabled = true; });
+        await api(`/api/duels/${encodeURIComponent(code)}/answer`, {
+          method: 'POST',
+          body: JSON.stringify({ name, choiceIndex: idx }),
+        });
       });
-      el.duelFeedback.textContent = i === q.correctIndex ? '✅ Doğru' : '❌ Yanlış';
+      el.duelChoices.appendChild(btn);
     });
-    el.duelChoices.appendChild(btn);
-  });
+  }
 
-  startCountdown();
+  if (state.answeredForCurrent) {
+    [...el.duelChoices.querySelectorAll('button')].forEach((b) => { b.disabled = true; });
+  }
 }
 
-function startCountdown() {
-  clearInterval(state.tickHandle);
-  state.tickHandle = setInterval(async () => {
-    state.timer -= 1;
-    el.countdownText.textContent = `${state.timer}`;
-    if (state.timer <= 0) {
-      clearInterval(state.tickHandle);
-      state.idx += 1;
-      if (state.idx >= state.questions.length) {
-        await finishDuel();
-      } else {
-        renderQuestion();
-      }
-    }
-  }, 1000);
-}
-
-async function finishDuel() {
+function renderFinished(room) {
   el.duelQuizSection.classList.add('hidden');
   el.duelResultSection.classList.remove('hidden');
-  const result = await api(`/api/duels/${encodeURIComponent(code)}/submit`, {
-    method: 'POST',
-    body: JSON.stringify({ name, answers: state.answers }),
-  });
-  el.duelScore.textContent = `Skorun: ${result.score}`;
-  el.duelLeaderboard.innerHTML = result.leaderboard
-    .map((s, i) => `<li>${i + 1}. ${s.name} - ${s.score}</li>`)
-    .join('');
+
+  const scores = room.finalScores || room.scores || {};
+  const rows = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  el.duelWinner.textContent = room.winner ? `🏆 Kazanan: ${room.winner}` : 'Sonuç bekleniyor';
+  el.duelScoreBoard.innerHTML = rows.map(([n, s]) => `<li>${n}: ${s} puan</li>`).join('');
+}
+
+function renderRoom(room) {
+  renderPlayers(room.participants || []);
+  el.roomTitle.textContent = `Düello Odası: ${room.code}`;
+  el.roomMeta.textContent = `Sen: ${name}`;
+
+  if (room.phase === 'waiting') {
+    el.phaseText.textContent = 'Rakip bekleniyor...';
+    el.countdownText.textContent = '-';
+    el.duelQuizSection.classList.add('hidden');
+    el.duelResultSection.classList.add('hidden');
+    return;
+  }
+
+  if (room.phase === 'countdown') {
+    el.phaseText.textContent = 'Düello başlıyor!';
+    el.countdownText.textContent = `${room.countdown}`;
+    el.duelQuizSection.classList.add('hidden');
+    el.duelResultSection.classList.add('hidden');
+    return;
+  }
+
+  if (room.phase === 'question' || room.phase === 'sudden_death') {
+    el.phaseText.textContent = room.phase === 'sudden_death' ? 'Uzatma (ani ölüm)' : 'Düello devam ediyor';
+    el.countdownText.textContent = `${room.timerLeft}`;
+    el.duelResultSection.classList.add('hidden');
+    renderQuestion(room);
+    return;
+  }
+
+  if (room.phase === 'finished') {
+    el.phaseText.textContent = 'Düello tamamlandı';
+    el.countdownText.textContent = '0';
+    renderFinished(room);
+  }
+}
+
+async function tick() {
+  const room = await api(`/api/duels/${encodeURIComponent(code)}`);
+  renderRoom(room);
 }
 
 async function init() {
   if (!code) {
-    alert('Düello kodu yok.');
+    alert('Kod yok');
     return;
   }
 
@@ -116,19 +147,12 @@ async function init() {
     body: JSON.stringify({ name }),
   });
 
-  const data = await api(`/api/duels/${encodeURIComponent(code)}`);
-  el.roomTitle.textContent = `Düello Odası: ${code}`;
-  el.roomMeta.textContent = `Oyuncu: ${name}`;
-  renderParticipants(data.participants || []);
-  state.questions = data.questions;
-  state.answers = new Array(data.questions.length).fill(null);
-
-  setInterval(async () => {
-    const room = await api(`/api/duels/${encodeURIComponent(code)}`);
-    renderParticipants(room.participants || []);
-  }, 1500);
-
-  renderQuestion();
+  await tick();
+  setInterval(() => {
+    tick().catch((e) => {
+      el.phaseText.textContent = `Bağlantı hatası: ${e.message}`;
+    });
+  }, 500);
 }
 
 init().catch((e) => alert(e.message));

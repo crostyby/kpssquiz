@@ -11,34 +11,39 @@
       <section class="card">
         <h2 id="roomTitle">Düello Odası</h2>
         <p id="roomMeta" class="muted"></p>
-        <div class="duel-grid">
+
+        <div class="row-between" style="gap:1rem; flex-wrap:wrap;">
+          <div class="code-box" id="leftPlayer">Oyuncu 1: -</div>
+          <div class="code-box" id="rightPlayer">Oyuncu 2: -</div>
+        </div>
+
+        <div class="duel-grid" style="margin-top:0.8rem;">
           <div>
-            <h3>Odadaki Oyuncular</h3>
-            <ul id="participantsList"></ul>
+            <h3>Aşama</h3>
+            <p id="phaseText" class="code-box">Rakip bekleniyor...</p>
           </div>
           <div>
-            <h3>Geri Sayım</h3>
-            <p id="countdownText" class="code-box">10</p>
+            <h3>Sayaç</h3>
+            <p id="countdownText" class="code-box">-</p>
           </div>
         </div>
+        <p id="answeredEarlyText" class="muted"></p>
       </section>
 
       <section id="duelQuizSection" class="card hidden">
         <div class="row-between">
           <h2>Düello Sorusu</h2>
-          <span id="duelProgress" class="badge">1/5</span>
+          <span id="duelProgress" class="badge">1/10</span>
         </div>
         <p id="duelQuestionMeta" class="muted"></p>
         <h3 id="duelQuestionText"></h3>
         <div id="duelChoices" class="choices"></div>
-        <p id="duelFeedback"></p>
       </section>
 
       <section id="duelResultSection" class="card hidden">
         <h2>Sonuç</h2>
-        <p id="duelScore"></p>
-        <h3>Liderlik</h3>
-        <ul id="duelLeaderboard"></ul>
+        <p id="duelWinner"></p>
+        <ul id="duelScoreBoard"></ul>
       </section>
     </main>
     <script src="duel.js"></script>
