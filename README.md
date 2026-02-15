@@ -5,6 +5,9 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 ## Bu sürümde hazır olanlar
 - Tekli quiz modu
 - Arkadaşla düello (davet kodu)
+- Aynı odaya giren oyuncular için **yeni düello penceresi** (`duel.html`)
+- Düello odasında iki oyuncunun aynı ekranda görünmesi (katılımcı listesi)
+- Her soru için 10 saniye geri sayım, süre bitince otomatik yeni soruya geçiş
 - Sunucu tarafında soru seçimi ve skor hesaplama
 - Kategori + alt kategori + zorluk filtreleme
 - Düello liderlik tablosu
@@ -17,24 +20,24 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 3. Tarayıcıdan aç:
    - `http://localhost:4173`
 
+## Düello akışı
+1. Oyuncu A: `Arkadaşla Düello` → `Davet Kodu Üret`
+2. Oyuncu B: kodla odaya katılır
+3. İki oyuncu da `Düello ekranını aç (yeni pencere)` butonuna basar
+4. Açılan yeni pencerede katılımcı listesi + 10 saniyelik geri sayımla sorular oynanır
+
 ## API uçları
 - `GET /api/health`
 - `GET /api/categories`
 - `GET /api/questions?main=...&sub=...&difficulty=...`
 - `POST /api/duels`
 - `GET /api/duels/:code`
+- `POST /api/duels/:code/join`
 - `POST /api/duels/:code/submit`
 
 ## Dosya yapısı
-- `server.js`: static sunum + API + basit veri katmanı
-- `app.js`: frontend akışları (tekli/düello)
+- `server.js`: static sunum + API + veri katmanı
+- `app.js`: ana ekran akışları (tekli/düello girişi)
+- `duel.html`, `duel.js`: canlı düello penceresi + geri sayım
 - `index.html`, `style.css`: arayüz
-- `data.json`: soru ve düello kayıtları (otomatik oluşur)
-
-## Not
-Bu sürüm MVP'dir. Prod için bir sonraki adımda:
-- JWT tabanlı auth
-- PostgreSQL
-- WebSocket realtime düello
-- Admin soru paneli
-önerilir.
+- `data.json`: soru ve düello kayıtları

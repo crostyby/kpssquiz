@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Düello Odası</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <section class="card">
+        <h2 id="roomTitle">Düello Odası</h2>
+        <p id="roomMeta" class="muted"></p>
+        <div class="duel-grid">
+          <div>
+            <h3>Odadaki Oyuncular</h3>
+            <ul id="participantsList"></ul>
+          </div>
+          <div>
+            <h3>Geri Sayım</h3>
+            <p id="countdownText" class="code-box">10</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="duelQuizSection" class="card hidden">
+        <div class="row-between">
+          <h2>Düello Sorusu</h2>
+          <span id="duelProgress" class="badge">1/5</span>
+        </div>
+        <p id="duelQuestionMeta" class="muted"></p>
+        <h3 id="duelQuestionText"></h3>
+        <div id="duelChoices" class="choices"></div>
+        <p id="duelFeedback"></p>
+      </section>
+
+      <section id="duelResultSection" class="card hidden">
+        <h2>Sonuç</h2>
+        <p id="duelScore"></p>
+        <h3>Liderlik</h3>
+        <ul id="duelLeaderboard"></ul>
+      </section>
+    </main>
+    <script src="duel.js"></script>
+  </body>
+</html>

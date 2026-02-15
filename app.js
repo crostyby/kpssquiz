@@ -15,7 +15,6 @@ const state = {
 const el = {
   soloModeBtn: document.getElementById('soloModeBtn'),
   duelModeBtn: document.getElementById('duelModeBtn'),
-  categorySection: document.getElementById('categorySection'),
   duelSection: document.getElementById('duelSection'),
   mainCategorySelect: document.getElementById('mainCategorySelect'),
   subCategorySelect: document.getElementById('subCategorySelect'),
@@ -55,10 +54,6 @@ async function api(path, options = {}) {
 async function loadCategories() {
   const data = await api('/api/categories');
   state.categories = data.categories;
-  renderCategoryOptions();
-}
-
-function renderCategoryOptions() {
   const mains = ['all', ...state.categories.map((c) => c.mainCategory)];
   el.mainCategorySelect.innerHTML = mains
     .map((item) => `<option value="${item}">${item === 'all' ? 'Tümü' : item}</option>`)
@@ -82,22 +77,80 @@ function setMode(mode) {
   el.duelSection.classList.toggle('hidden', mode !== 'duel');
 }
 
-async function startSolo() {
-  state.selectedMainCategory = el.mainCategorySelect.value;
-  state.selectedSubCategory = el.subCategorySelect.value;
-  state.selectedDifficulty = el.difficultySelect.value;
+function askName(fallback) {
+  const input = prompt('Oyuncu adın?', state.playerName || fallback);
+  if (!input) return null;
+  const name = input.trim().slice(0, 30);
+  if (!name) return null;
+  state.playerName = name;
+  localStorage.setItem('kpss_player_name', name);
+  return name;
+}
 
+async function startSolo() {
   const query = new URLSearchParams({
-    main: state.selectedMainCategory,
-    sub: state.selectedSubCategory,
-    difficulty: state.selectedDifficulty,
+    main: el.mainCategorySelect.value,
+    sub: el.subCategorySelect.value,
+    difficulty: el.difficultySelect.value,
   }).toString();
+
   const data = await api(`/api/questions?${query}`);
   if (!data.questions.length) {
     alert('Bu filtrede soru bulunamadı.');
     return;
   }
-  beginQuiz(data.questions, null);
+
+  state.questions = data.questions;
+  state.answers = new Array(data.questions.length).fill(null);
+  state.currentIndex = 0;
+  state.score = 0;
+  el.quizSection.classList.remove('hidden');
+  el.resultSection.classList.add('hidden');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = state.questions[state.currentIndex];
+  el.quizTitle.textContent = 'Tekli Soru';
+  el.progressBadge.textContent = `${state.currentIndex + 1}/${state.questions.length}`;
+  el.questionMeta.textContent = `${q.mainCategory} • ${q.subCategory} • Zorluk ${q.difficulty}`;
+  el.questionText.textContent = q.stem;
+  el.feedbackText.textContent = '';
+  el.explanationText.textContent = '';
+  el.nextQuestionBtn.classList.add('hidden');
+
+  el.choicesContainer.innerHTML = '';
+  q.choices.forEach((choice, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'btn choice-btn';
+    btn.textContent = choice;
+    btn.addEventListener('click', () => {
+      if (state.answers[state.currentIndex] !== null) return;
+      state.answers[state.currentIndex] = idx;
+      [...el.choicesContainer.querySelectorAll('button')].forEach((item, i) => {
+        item.disabled = true;
+        if (i === q.correctIndex) item.classList.add('correct');
+        if (i === idx && idx !== q.correctIndex) item.classList.add('wrong');
+      });
+      if (idx === q.correctIndex) state.score += 100;
+      el.feedbackText.textContent = idx === q.correctIndex ? '✅ Doğru!' : '❌ Yanlış';
+      el.explanationText.textContent = `Açıklama: ${q.explanation}`;
+      el.nextQuestionBtn.classList.remove('hidden');
+    });
+    el.choicesContainer.appendChild(btn);
+  });
+}
+
+function nextSoloQuestion() {
+  state.currentIndex += 1;
+  if (state.currentIndex < state.questions.length) {
+    renderQuestion();
+    return;
+  }
+  el.quizSection.classList.add('hidden');
+  el.resultSection.classList.remove('hidden');
+  el.resultSummary.textContent = `Skorun: ${state.score}`;
+  el.duelResultBox.classList.add('hidden');
 }
 
 async function createInvite() {
@@ -109,7 +162,7 @@ async function createInvite() {
   });
   state.duelCode = data.code;
   el.inviteCodeDisplay.textContent = `Davet kodu: ${data.code}`;
-  el.joinStatus.textContent = 'Düello odası oluşturuldu.';
+  el.joinStatus.textContent = 'Oda oluşturuldu. "Düello ekranını aç" ile yeni pencere aç.';
 }
 
 async function joinInvite() {
@@ -118,121 +171,26 @@ async function joinInvite() {
   const data = await api(`/api/duels/${encodeURIComponent(code)}`);
   state.duelCode = data.code;
   el.inviteCodeDisplay.textContent = `Aktif oda: ${data.code}`;
-  el.joinStatus.textContent = `Katıldın. ${data.questions.length} soru hazır.`;
+  el.joinStatus.textContent = 'Odaya katıldın. "Düello ekranını aç" butonuna bas.';
 }
 
-async function startDuel() {
+async function openDuelWindow() {
   if (!state.duelCode) {
     alert('Önce bir düello kodu oluştur veya katıl.');
     return;
   }
-  const data = await api(`/api/duels/${encodeURIComponent(state.duelCode)}`);
-  beginQuiz(data.questions, state.duelCode);
-}
-
-function beginQuiz(questions, duelCode = null) {
-  state.questions = questions;
-  state.answers = new Array(questions.length).fill(null);
-  state.currentIndex = 0;
-  state.score = 0;
-  state.duelCode = duelCode;
-  el.quizSection.classList.remove('hidden');
-  el.resultSection.classList.add('hidden');
-  renderQuestion();
-}
-
-function renderQuestion() {
-  const q = state.questions[state.currentIndex];
-  el.quizTitle.textContent = state.mode === 'duel' ? 'Düello Sorusu' : 'Tekli Soru';
-  el.progressBadge.textContent = `${state.currentIndex + 1}/${state.questions.length}`;
-  el.questionMeta.textContent = `${q.mainCategory} • ${q.subCategory} • Zorluk ${q.difficulty} • Kalite ${q.qualityScore}`;
-  el.questionText.textContent = q.stem;
-  el.feedbackText.textContent = '';
-  el.explanationText.textContent = '';
-  el.nextQuestionBtn.classList.add('hidden');
-
-  el.choicesContainer.innerHTML = '';
-  q.choices.forEach((choice, idx) => {
-    const btn = document.createElement('button');
-    btn.className = 'btn choice-btn';
-    btn.textContent = choice;
-    btn.addEventListener('click', () => submitAnswer(idx));
-    el.choicesContainer.appendChild(btn);
-  });
-}
-
-function submitAnswer(idx) {
-  if (state.answers[state.currentIndex] !== null) return;
-  const q = state.questions[state.currentIndex];
-  state.answers[state.currentIndex] = idx;
-
-  const buttons = [...el.choicesContainer.querySelectorAll('button')];
-  buttons.forEach((btn, i) => {
-    btn.disabled = true;
-    if (i === q.correctIndex) btn.classList.add('correct');
-    if (i === idx && idx !== q.correctIndex) btn.classList.add('wrong');
-  });
-
-  if (idx === q.correctIndex) {
-    const correctCount = state.answers.filter((a, i) => a !== null && a === state.questions[i].correctIndex).length;
-    const streakBonus = Math.max(0, correctCount - 1) * 10;
-    const gained = 100 + streakBonus;
-    state.score += gained;
-    el.feedbackText.textContent = `✅ Doğru! +${gained} puan`;
-  } else {
-    el.feedbackText.textContent = '❌ Yanlış cevap.';
-  }
-  el.explanationText.textContent = `Açıklama: ${q.explanation}`;
-  el.nextQuestionBtn.classList.remove('hidden');
-}
-
-async function nextQuestion() {
-  state.currentIndex += 1;
-  if (state.currentIndex < state.questions.length) {
-    renderQuestion();
-    return;
-  }
-  await showResult();
-}
-
-async function showResult() {
-  el.quizSection.classList.add('hidden');
-  el.resultSection.classList.remove('hidden');
-  el.resultSummary.textContent = `Toplam ${state.questions.length} soruda skorun: ${state.score}`;
-
-  if (state.mode !== 'duel' || !state.duelCode) {
-    el.duelResultBox.classList.add('hidden');
-    el.duelResultBox.innerHTML = '';
-    return;
-  }
-
   const name = askName('Oyuncu');
   if (!name) return;
-  const data = await api(`/api/duels/${encodeURIComponent(state.duelCode)}/submit`, {
+
+  await api(`/api/duels/${encodeURIComponent(state.duelCode)}/join`, {
     method: 'POST',
-    body: JSON.stringify({ name, answers: state.answers }),
+    body: JSON.stringify({ name }),
   });
 
-  el.duelResultBox.classList.remove('hidden');
-  const items = data.leaderboard.map((s, i) => `<li>${i + 1}. ${s.name} - ${s.score}</li>`).join('');
-  el.duelResultBox.innerHTML = `<h3>Düello Liderlik Tablosu</h3><ul>${items}</ul>`;
-}
-
-function askName(fallback) {
-  const input = prompt('Oyuncu adın?', state.playerName || fallback);
-  if (!input) return null;
-  const name = input.trim().slice(0, 30);
-  if (!name) return null;
-  state.playerName = name;
-  localStorage.setItem('kpss_player_name', name);
-  return name;
+  window.open(`/duel.html?code=${encodeURIComponent(state.duelCode)}&name=${encodeURIComponent(name)}`, '_blank');
 }
 
 function resetApp() {
-  state.questions = [];
-  state.answers = [];
-  state.currentIndex = 0;
-  state.score = 0;
   el.quizSection.classList.add('hidden');
   el.resultSection.classList.add('hidden');
 }
@@ -241,13 +199,11 @@ el.soloModeBtn.addEventListener('click', () => setMode('solo'));
 el.duelModeBtn.addEventListener('click', () => setMode('duel'));
 el.mainCategorySelect.addEventListener('change', refreshSubCategories);
 el.startQuizBtn.addEventListener('click', () => startSolo().catch((e) => alert(e.message)));
+el.nextQuestionBtn.addEventListener('click', nextSoloQuestion);
+el.restartBtn.addEventListener('click', resetApp);
 el.createInviteBtn.addEventListener('click', () => createInvite().catch((e) => alert(e.message)));
 el.joinInviteBtn.addEventListener('click', () => joinInvite().catch((e) => alert(e.message)));
-el.startDuelQuizBtn.addEventListener('click', () => startDuel().catch((e) => alert(e.message)));
-el.nextQuestionBtn.addEventListener('click', () => nextQuestion().catch((e) => alert(e.message)));
-el.restartBtn.addEventListener('click', resetApp);
+el.startDuelQuizBtn.addEventListener('click', () => openDuelWindow().catch((e) => alert(e.message)));
 
-loadCategories().catch((e) => {
-  alert(`API bağlantı hatası: ${e.message}. server.js çalıştırdığından emin ol.`);
-});
+loadCategories().catch((e) => alert(`API hatası: ${e.message}`));
 setMode('solo');

@@ -120,7 +120,7 @@ const server = http.createServer(async (req, res) => {
     const hostName = (body.hostName || 'Oyuncu 1').toString().slice(0, 30);
     const code = `KPSS-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
     const questionIds = shuffle(db.questions).slice(0, 5).map((q) => q.id);
-    const duel = { id: randomUUID(), code, hostName, questionIds, submissions: [], createdAt: Date.now() };
+    const duel = { id: randomUUID(), code, hostName, questionIds, participants: [hostName], submissions: [], createdAt: Date.now() };
     db.duels.push(duel);
     saveDb(db);
     return json(res, 201, { code, duelId: duel.id, questionCount: duel.questionIds.length });
@@ -134,7 +134,21 @@ const server = http.createServer(async (req, res) => {
       .map((id) => db.questions.find((q) => q.id === id))
       .filter(Boolean)
       .map(sanitizeQuestion);
-    return json(res, 200, { code: duel.code, questions, submissions: duel.submissions });
+    return json(res, 200, { code: duel.code, questions, participants: duel.participants || [], submissions: duel.submissions });
+  }
+
+
+  if (req.method === 'POST' && url.pathname.match(/^\/api\/duels\/[^/]+\/join$/)) {
+    const code = decodeURIComponent(url.pathname.split('/')[3]);
+    const duel = db.duels.find((d) => d.code === code);
+    if (!duel) return json(res, 404, { error: 'Düello bulunamadı' });
+    const body = await parseBody(req).catch((e) => json(res, 400, { error: e.message }));
+    if (!body || res.writableEnded) return;
+    const name = (body.name || 'Oyuncu').toString().slice(0, 30);
+    duel.participants = duel.participants || [];
+    if (!duel.participants.includes(name)) duel.participants.push(name);
+    saveDb(db);
+    return json(res, 200, { code: duel.code, participants: duel.participants });
   }
 
   if (req.method === 'POST' && url.pathname.match(/^\/api\/duels\/[^/]+\/submit$/)) {
@@ -177,7 +191,10 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
     return staticFile(res, path.join(__dirname, 'index.html'));
   }
-  if (req.method === 'GET' && ['/style.css', '/app.js'].includes(url.pathname)) {
+  if (req.method === 'GET' && url.pathname === '/duel.html') {
+    return staticFile(res, path.join(__dirname, 'duel.html'));
+  }
+  if (req.method === 'GET' && ['/style.css', '/app.js', '/duel.js'].includes(url.pathname)) {
     return staticFile(res, path.join(__dirname, url.pathname.slice(1)));
   }
 
