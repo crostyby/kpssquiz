@@ -46,3 +46,56 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 - `Cannot find module .../server.js` hatası alırsan terminalin doğru klasörde olmayabilir. Önce proje klasörüne girip (`cd .../kpssquiz`) tekrar dene.
 - `Port 4173 zaten kullanımda` hatasında farklı portla başlat: `PORT=5000 node server.js` ve tarayıcıdan `http://localhost:5000` aç.
 - `data.json` bozulduysa server açılışta otomatik sıfırlar ve seed soruları geri yükler.
+
+
+## Localhost'ta Aşırı Detaylı Test Rehberi (Hiç bilmeyen için)
+
+### 1) Terminal aç
+- **Windows:** Başlat menüsüne "PowerShell" yaz ve aç.
+- **Mac:** Launchpad > Terminal.
+- **Linux:** Terminal uygulamasını aç.
+
+### 2) Proje klasörüne gir
+- Komut satırına **kendi bilgisayarındaki proje yolunu** yaz:
+  - Örnek (Windows): `cd C:\Users\kullanici\Desktop\kpssquiz`
+  - Örnek (Mac/Linux): `cd ~/Desktop/kpssquiz`
+- Sonra klasörde misin kontrol et:
+  - `dir` (Windows) veya `ls` (Mac/Linux)
+- Listede `server.js` dosyasını görmelisin.
+
+### 3) Sunucuyu başlat
+- Şu komutu yaz:
+  - `node server.js`
+- Başarılıysa terminalde şunu görürsün:
+  - `KPSS Quiz Arena running on http://localhost:4173`
+
+### 4) Tarayıcıdan siteyi aç
+- Chrome/Edge/Firefox aç.
+- Adres satırına yaz:
+  - `http://localhost:4173`
+
+### 5) Hızlı sağlık testi (opsiyonel ama faydalı)
+- Yeni bir terminal aç ve şu komutu çalıştır:
+  - `curl http://localhost:4173/api/health`
+- Beklenen çıktı:
+  - `{"ok":true}`
+
+### 6) Tekli mod testi
+1. Ana ekranda **Tekli Çalışma** seç.
+2. Kategori/Zorluk seç.
+3. **Teste Başla**.
+4. Bir şık seç, doğru/yanlış renkle görünsün.
+5. Soruları bitir ve sonuç ekranını gör.
+
+### 7) Düello testi (2 pencere ile)
+1. 1. pencerede: **Arkadaşla Düello** > **Davet Kodu Üret**.
+2. Çıkan kodu kopyala.
+3. 2. pencerede siteyi aç, aynı kodla **Odaya Katıl**.
+4. İki pencerede de **Düello ekranını aç (yeni pencere)** butonuna bas.
+5. Açılan düello ekranında iki oyuncu listede görünmeli.
+6. Her soruda sayaç 10'dan geriye saymalı.
+7. Süre bitince otomatik sonraki soruya geçmeli.
+8. Sonunda skor ve liderlik listesi görünmeli.
+
+### 8) Test bitince sunucuyu kapat
+- Sunucunun çalıştığı terminalde `CTRL + C`.
