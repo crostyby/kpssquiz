@@ -126,8 +126,8 @@ const server = http.createServer(async (req, res) => {
     return json(res, 201, { code, duelId: duel.id, questionCount: duel.questionIds.length });
   }
 
-  if (req.method === 'GET' && url.pathname.startsWith('/api/duels/')) {
-    const code = decodeURIComponent(url.pathname.split('/').pop());
+  if (req.method === 'GET' && url.pathname.match(/^\/api\/duels\/[^/]+$/)) {
+    const code = decodeURIComponent(url.pathname.split('/')[3]);
     const duel = db.duels.find((d) => d.code === code);
     if (!duel) return json(res, 404, { error: 'Düello bulunamadı' });
     const questions = duel.questionIds
