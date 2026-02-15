@@ -17,13 +17,29 @@ const seedQuestions = [
   { id: 'Q8', mainCategory: 'Genel Yetenek', subCategory: 'Matematik > Sayılar', difficulty: 1, tags: ['matematik'], stem: '15 + 27 kaçtır?', choices: ['32','42','52','44'], correctIndex: 1, explanation: '15 + 27 = 42.', qualityScore: 4.9 }
 ];
 
+function createInitialDb() {
+  return { questions: seedQuestions, duels: [] };
+}
+
 function loadDb() {
   if (!fs.existsSync(DB_PATH)) {
-    const initial = { questions: seedQuestions, duels: [] };
+    const initial = createInitialDb();
     fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
     return initial;
   }
-  return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+    if (!Array.isArray(parsed.questions) || !Array.isArray(parsed.duels)) {
+      throw new Error('Geçersiz data.json şeması');
+    }
+    return parsed;
+  } catch (error) {
+    console.error('data.json okunamadı, dosya sıfırlanıyor:', error.message);
+    const initial = createInitialDb();
+    fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
+    return initial;
+  }
 }
 
 function saveDb(db) {
@@ -203,4 +219,13 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`KPSS Quiz Arena running on http://localhost:${PORT}`);
+});
+
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} zaten kullanımda. Farklı port için: PORT=5000 node server.js`);
+    process.exit(1);
+  }
+  console.error('Sunucu başlatılamadı:', error);
+  process.exit(1);
 });

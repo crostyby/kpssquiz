@@ -41,3 +41,8 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 - `duel.html`, `duel.js`: canlı düello penceresi + geri sayım
 - `index.html`, `style.css`: arayüz
 - `data.json`: soru ve düello kayıtları
+
+## Sorun Giderme
+- `Cannot find module .../server.js` hatası alırsan terminalin doğru klasörde olmayabilir. Önce proje klasörüne girip (`cd .../kpssquiz`) tekrar dene.
+- `Port 4173 zaten kullanımda` hatasında farklı portla başlat: `PORT=5000 node server.js` ve tarayıcıdan `http://localhost:5000` aç.
+- `data.json` bozulduysa server açılışta otomatik sıfırlar ve seed soruları geri yükler.
