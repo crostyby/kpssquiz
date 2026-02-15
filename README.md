@@ -10,7 +10,7 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 - Düello başında 3-2-1-0 geri sayım
 - Her soru için 10 saniye ortak sayaç, süre bitince otomatik yeni soruya geçiş
 - Bir oyuncu erken cevap verirse diğer oyuncuya küçük alanda gösterim
-- 10 soru sonunda eşitse uzatma (ani ölüm): ilk yanlış yapan kaybeder
+- 10 soru sonunda skor eşitse toplam çözüm süresi daha düşük olan kazanır
 - Sunucu tarafında soru seçimi ve skor hesaplama
 - Kategori + alt kategori + zorluk filtreleme
 - Düello liderlik tablosu
@@ -27,8 +27,9 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 1. Oyuncu A: `Arkadaşla Düello` → `Davet Kodu Üret`
 2. Oyuncu B: kodla odaya katılır
 3. Oluşturan kişi kodu tek tuşla kopyalar, diğer oyuncu bu kodu "Odaya Katıl" alanına yazar
-4. İki oyuncu da `Düello ekranını aç (yeni pencere)` butonuna basar
-5. Ekranda isimler yan yana görünür, 3-2-1-0 sonrası düello başlar
+4. Oda oluşturma/katılma sonrası düello penceresi otomatik açılır
+5. Oda ekranında isimler yan yana görünür, 3-2-1-0 geri sayımı sonrası düello başlar
+6. Her soruda 10 saniye cevap aşaması + kısa sonuç gösterimi vardır
 
 ## API uçları
 - `GET /api/health`
@@ -37,7 +38,7 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 - `POST /api/duels`
 - `GET /api/duels/:code`
 - `POST /api/duels/:code/join`
-- `POST /api/duels/:code/answer`
+- `POST /api/duels/:code/answer` (soru cevabı gönderir)
 
 ## Dosya yapısı
 - `server.js`: static sunum + API + veri katmanı
@@ -95,11 +96,11 @@ KPSS çalışmayı oyunlaştıran web uygulaması.
 1. 1. pencerede: **Arkadaşla Düello** > **Davet Kodu Üret**.
 2. Çıkan kodu kopyala.
 3. 2. pencerede siteyi aç, aynı kodla **Odaya Katıl**.
-4. İki pencerede de **Düello ekranını aç (yeni pencere)** butonuna bas.
-5. Açılan düello ekranında iki oyuncu listede görünmeli.
-6. Her soruda sayaç 10'dan geriye saymalı.
-7. Süre bitince otomatik sonraki soruya geçmeli.
-8. Sonunda skor ve liderlik listesi görünmeli.
+4. Odaya katılınca düello ekranı otomatik açılır (popup engeli varsa izin ver).
+5. Açılan düello ekranında iki oyuncu ismi yan yana görünmeli.
+6. Önce 3-2-1-0 geri sayımı, sonra soru-soru 10 saniye sayaç görünmeli.
+7. Süre dolunca doğru şık yeşil, yanlış seçimin kırmızı görünmeli.
+8. Sonunda skor ve süre tablosu + kazanan görünmeli.
 
 ### 8) Test bitince sunucuyu kapat
 - Sunucunun çalıştığı terminalde `CTRL + C`.

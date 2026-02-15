@@ -140,3 +140,18 @@ select, input {
   border-left: 4px solid var(--pal-red);
   padding-left: 0.6rem;
 }
+
+
+.choice-selected {
+  outline: 2px solid rgba(67, 72, 170, 0.75);
+}
+
+.pulse-ok {
+  animation: pulseOk 0.6s ease;
+}
+
+@keyframes pulseOk {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}

@@ -18,11 +18,14 @@ const el = {
   duelResultSection: document.getElementById('duelResultSection'),
   duelWinner: document.getElementById('duelWinner'),
   duelScoreBoard: document.getElementById('duelScoreBoard'),
+  duelLiveScore: document.getElementById('duelLiveScore'),
 };
 
 const state = {
   lastQuestionIndex: null,
   answeredForCurrent: false,
+  selectedIndex: null,
+  participants: [],
 };
 
 async function api(path, options = {}) {
@@ -35,9 +38,22 @@ async function api(path, options = {}) {
   return data;
 }
 
+function formatSec(ms) {
+  return `${(ms / 1000).toFixed(2)} sn`;
+}
+
 function renderPlayers(participants) {
   el.leftPlayer.textContent = `Oyuncu 1: ${participants[0] || '-'}`;
   el.rightPlayer.textContent = `Oyuncu 2: ${participants[1] || '-'}`;
+}
+
+function renderLiveScore(room) {
+  const rows = (room.participants || []).map((p) => {
+    const score = room.scores?.[p] || 0;
+    const t = room.totalTimesMs?.[p] ?? 0;
+    return `${p}: ${score} puan (${formatSec(t)})`;
+  });
+  el.duelLiveScore.textContent = rows.join(' | ');
 }
 
 function renderQuestion(room) {
@@ -50,15 +66,16 @@ function renderQuestion(room) {
   if (state.lastQuestionIndex !== q.index) {
     state.lastQuestionIndex = q.index;
     state.answeredForCurrent = false;
+    state.selectedIndex = null;
   }
 
   el.duelQuizSection.classList.remove('hidden');
-  el.duelProgress.textContent = `${Math.min(q.index, room.totalQuestions)}/${room.totalQuestions}`;
+  el.duelProgress.textContent = `${q.index}/${q.total}`;
   el.duelQuestionMeta.textContent = `${q.mainCategory} • ${q.subCategory} • Zorluk ${q.difficulty}`;
   el.duelQuestionText.textContent = q.stem;
+  renderLiveScore(room);
 
-  const answeredNames = (room.answerStatus || []).filter((x) => x.answered).map((x) => x.name);
-  el.answeredEarlyText.textContent = answeredNames.length ? `Erken cevaplayan: ${answeredNames.join(', ')}` : '';
+  el.answeredEarlyText.textContent = room.firstResponder ? `İlk cevaplayan: ${room.firstResponder}` : '';
 
   if (el.duelChoices.dataset.qidx !== String(q.index)) {
     el.duelChoices.dataset.qidx = String(q.index);
@@ -68,8 +85,9 @@ function renderQuestion(room) {
       btn.className = 'btn choice-btn';
       btn.textContent = choice;
       btn.addEventListener('click', async () => {
-        if (state.answeredForCurrent) return;
+        if (state.answeredForCurrent || room.subPhase !== 'answer') return;
         state.answeredForCurrent = true;
+        state.selectedIndex = idx;
         [...el.duelChoices.querySelectorAll('button')].forEach((b) => { b.disabled = true; });
         await api(`/api/duels/${encodeURIComponent(code)}/answer`, {
           method: 'POST',
@@ -80,8 +98,38 @@ function renderQuestion(room) {
     });
   }
 
-  if (state.answeredForCurrent) {
-    [...el.duelChoices.querySelectorAll('button')].forEach((b) => { b.disabled = true; });
+  if (room.myAnswer && Number.isInteger(room.myAnswer.choiceIndex)) {
+    state.answeredForCurrent = true;
+    state.selectedIndex = room.myAnswer.choiceIndex;
+  }
+
+  const allBtns = [...el.duelChoices.querySelectorAll('button')];
+  if (room.subPhase === 'answer') {
+    allBtns.forEach((b) => {
+      b.disabled = state.answeredForCurrent;
+      b.classList.remove('correct', 'wrong', 'pulse-ok');
+    });
+    if (state.answeredForCurrent && Number.isInteger(state.selectedIndex)) {
+      allBtns[state.selectedIndex]?.classList.add('choice-selected');
+    }
+  } else {
+    allBtns.forEach((b, idx) => {
+      b.disabled = true;
+      b.classList.remove('correct', 'wrong', 'pulse-ok');
+      if (idx === q.correctIndex) b.classList.add('correct');
+      if (Number.isInteger(state.selectedIndex) && idx === state.selectedIndex && idx !== q.correctIndex) {
+        b.classList.add('wrong');
+      }
+    });
+
+    if (Number.isInteger(state.selectedIndex) && state.selectedIndex === q.correctIndex) {
+      el.answeredEarlyText.textContent = '✓ Doğru cevap';
+      allBtns[state.selectedIndex]?.classList.add('pulse-ok');
+    } else if (Number.isInteger(state.selectedIndex)) {
+      el.answeredEarlyText.textContent = 'Yanlış cevap';
+    } else {
+      el.answeredEarlyText.textContent = room.firstResponder ? `İlk cevaplayan: ${room.firstResponder}` : 'Cevap verilmedi';
+    }
   }
 }
 
@@ -89,16 +137,26 @@ function renderFinished(room) {
   el.duelQuizSection.classList.add('hidden');
   el.duelResultSection.classList.remove('hidden');
 
-  const scores = room.finalScores || room.scores || {};
-  const rows = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-  el.duelWinner.textContent = room.winner ? `🏆 Kazanan: ${room.winner}` : 'Sonuç bekleniyor';
-  el.duelScoreBoard.innerHTML = rows.map(([n, s]) => `<li>${n}: ${s} puan</li>`).join('');
+  const scores = room.finalScores || {};
+  const times = room.finalTimesMs || {};
+  const rows = Object.keys(scores)
+    .map((n) => ({ n, s: scores[n], t: times[n] ?? 0 }))
+    .sort((a, b) => (b.s - a.s) || (a.t - b.t));
+
+  el.duelWinner.textContent = `🏆 Kazanan: ${room.winner}`;
+  el.duelScoreBoard.innerHTML = rows
+    .map((r) => `<li>${r.n}: ${r.s} puan • ${formatSec(r.t)}</li>`)
+    .join('');
 }
 
 function renderRoom(room) {
   renderPlayers(room.participants || []);
   el.roomTitle.textContent = `Düello Odası: ${room.code}`;
   el.roomMeta.textContent = `Sen: ${name}`;
+
+  if (room.joinNotice && room.participants.length === 2) {
+    el.phaseText.textContent = room.joinNotice;
+  }
 
   if (room.phase === 'waiting') {
     el.phaseText.textContent = 'Rakip bekleniyor...';
@@ -109,15 +167,15 @@ function renderRoom(room) {
   }
 
   if (room.phase === 'countdown') {
-    el.phaseText.textContent = 'Düello başlıyor!';
+    el.phaseText.textContent = 'Düello başlıyor';
     el.countdownText.textContent = `${room.countdown}`;
     el.duelQuizSection.classList.add('hidden');
     el.duelResultSection.classList.add('hidden');
     return;
   }
 
-  if (room.phase === 'question' || room.phase === 'sudden_death') {
-    el.phaseText.textContent = room.phase === 'sudden_death' ? 'Uzatma (ani ölüm)' : 'Düello devam ediyor';
+  if (room.phase === 'question') {
+    el.phaseText.textContent = room.subPhase === 'answer' ? 'Cevapla!' : 'Sonuç gösteriliyor';
     el.countdownText.textContent = `${room.timerLeft}`;
     el.duelResultSection.classList.add('hidden');
     renderQuestion(room);
@@ -132,7 +190,7 @@ function renderRoom(room) {
 }
 
 async function tick() {
-  const room = await api(`/api/duels/${encodeURIComponent(code)}`);
+  const room = await api(`/api/duels/${encodeURIComponent(code)}?name=${encodeURIComponent(name)}`);
   renderRoom(room);
 }
 
@@ -152,7 +210,7 @@ async function init() {
     tick().catch((e) => {
       el.phaseText.textContent = `Bağlantı hatası: ${e.message}`;
     });
-  }, 500);
+  }, 400);
 }
 
 init().catch((e) => alert(e.message));

@@ -5,8 +5,11 @@ const { randomUUID } = require('crypto');
 
 const PORT = process.env.PORT || 4173;
 const DB_PATH = path.join(__dirname, 'data.json');
+
 const REGULAR_QUESTION_COUNT = 10;
-const QUESTION_DURATION_MS = 10_000;
+const ANSWER_DURATION_MS = 10_000;
+const REVEAL_DURATION_MS = 2_000;
+const SLOT_DURATION_MS = ANSWER_DURATION_MS + REVEAL_DURATION_MS;
 const COUNTDOWN_MS = 4_000; // 3-2-1-0
 
 const seedQuestions = [
@@ -30,49 +33,33 @@ function loadDb() {
     fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
     return initial;
   }
-
   try {
     const parsed = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
-    if (!Array.isArray(parsed.questions) || !Array.isArray(parsed.duels)) {
-      throw new Error('Geçersiz data.json şeması');
-    }
+    if (!Array.isArray(parsed.questions) || !Array.isArray(parsed.duels)) throw new Error('bad schema');
     return parsed;
-  } catch (error) {
-    console.error('data.json okunamadı, dosya sıfırlanıyor:', error.message);
+  } catch {
     const initial = createInitialDb();
     fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
     return initial;
   }
 }
 
-function saveDb(db) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
-}
-
+function saveDb(db) { fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2)); }
 function json(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(payload));
 }
-
 function notFound(res) {
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('Not found');
 }
-
 function parseBody(req) {
   return new Promise((resolve, reject) => {
     let raw = '';
-    req.on('data', (chunk) => {
-      raw += chunk;
-      if (raw.length > 1e6) reject(new Error('Payload too large'));
-    });
+    req.on('data', (chunk) => { raw += chunk; if (raw.length > 1e6) reject(new Error('Payload too large')); });
     req.on('end', () => {
       if (!raw) return resolve({});
-      try {
-        resolve(JSON.parse(raw));
-      } catch {
-        reject(new Error('Invalid JSON'));
-      }
+      try { resolve(JSON.parse(raw)); } catch { reject(new Error('Invalid JSON')); }
     });
   });
 }
@@ -95,134 +82,120 @@ function staticFile(res, filePath) {
 }
 
 function pickQuestionIds(bank, count) {
-  if (!bank.length) return [];
-  const shuffled = shuffle(bank.map((q) => q.id));
   const ids = [];
-  while (ids.length < count) {
-    ids.push(shuffled[ids.length % shuffled.length]);
-  }
+  const shuffled = shuffle(bank.map((q) => q.id));
+  while (ids.length < count) ids.push(shuffled[ids.length % shuffled.length]);
   return ids;
 }
-
-function getQuestionById(db, id) {
-  return db.questions.find((q) => q.id === id) || null;
-}
-
-function getQuestionForIndex(duel, db, index) {
-  if (index < REGULAR_QUESTION_COUNT) {
-    return getQuestionById(db, duel.regularQuestionIds[index]);
-  }
-  const suddenIdx = (index - REGULAR_QUESTION_COUNT) % duel.suddenQuestionIds.length;
-  return getQuestionById(db, duel.suddenQuestionIds[suddenIdx]);
-}
-
-function isCorrectForIndex(duel, db, index, choiceIndex) {
-  const q = getQuestionForIndex(duel, db, index);
-  if (!q) return false;
-  return q.correctIndex === choiceIndex;
-}
+function getQuestionById(db, id) { return db.questions.find((q) => q.id === id) || null; }
 
 function computeRegularScores(duel, db) {
-  const scores = {};
+  const out = {};
   (duel.participants || []).forEach((name) => {
     const answers = duel.playerAnswers?.[name] || [];
     let score = 0;
     for (let i = 0; i < REGULAR_QUESTION_COUNT; i += 1) {
-      if (isCorrectForIndex(duel, db, i, answers[i])) score += 1;
+      const q = getQuestionById(db, duel.regularQuestionIds[i]);
+      if (q && answers[i]?.choiceIndex === q.correctIndex) score += 1;
     }
-    scores[name] = score;
+    out[name] = score;
   });
-  return scores;
+  return out;
 }
 
-function computeCurrentIndex(duel, now) {
-  if (!duel.questionStartAt || now < duel.questionStartAt) return -1;
-  if (duel.phase === 'question') {
-    return Math.floor((now - duel.questionStartAt) / QUESTION_DURATION_MS);
+function computeTotalTimes(duel) {
+  const out = {};
+  (duel.participants || []).forEach((name) => {
+    const answers = duel.playerAnswers?.[name] || [];
+    let totalMs = 0;
+    for (let i = 0; i < REGULAR_QUESTION_COUNT; i += 1) {
+      totalMs += Number.isFinite(answers[i]?.responseMs) ? answers[i].responseMs : ANSWER_DURATION_MS;
+    }
+    out[name] = totalMs;
+  });
+  return out;
+}
+
+function ensureCountdownStart(duel) {
+  if (duel.phase === 'waiting' && duel.participants.length === 2) {
+    duel.phase = 'countdown';
+    duel.countdownStartAt = Date.now();
+    duel.quizStartAt = duel.countdownStartAt + COUNTDOWN_MS;
+    duel.joinNotice = `${duel.participants[1]} odaya katıldı`;
   }
-  if (duel.phase === 'sudden_death') {
-    const suddenElapsed = now - duel.suddenStartAt;
-    return REGULAR_QUESTION_COUNT + Math.floor(suddenElapsed / QUESTION_DURATION_MS);
-  }
-  return -1;
 }
 
 function updateDuelState(duel, db) {
   const now = Date.now();
   if (!duel.phase) duel.phase = 'waiting';
+  ensureCountdownStart(duel);
 
-  if (duel.phase === 'waiting' && duel.participants.length === 2) {
-    duel.phase = 'countdown';
-    duel.countdownStartAt = now;
-    duel.questionStartAt = now + COUNTDOWN_MS;
-  }
+  if (duel.phase === 'countdown' && now >= duel.quizStartAt) duel.phase = 'question';
 
-  if (duel.phase === 'countdown' && now >= duel.questionStartAt) {
-    duel.phase = 'question';
-  }
-
-  const regularEndAt = (duel.questionStartAt || now) + REGULAR_QUESTION_COUNT * QUESTION_DURATION_MS;
-
-  if (duel.phase === 'question' && now >= regularEndAt) {
-    const scores = computeRegularScores(duel, db);
-    const [a, b] = duel.participants;
-    if (scores[a] !== scores[b]) {
+  if (duel.phase === 'question') {
+    const elapsed = now - duel.quizStartAt;
+    const endAt = REGULAR_QUESTION_COUNT * SLOT_DURATION_MS;
+    if (elapsed >= endAt) {
       duel.phase = 'finished';
-      duel.winner = scores[a] > scores[b] ? a : b;
+      const scores = computeRegularScores(duel, db);
+      const times = computeTotalTimes(duel);
+      const [a, b] = duel.participants;
       duel.finalScores = scores;
-    } else {
-      duel.phase = 'sudden_death';
-      duel.suddenStartAt = regularEndAt;
-    }
-  }
-
-  if (duel.phase === 'sudden_death') {
-    const [a, b] = duel.participants;
-    const completedRounds = Math.floor((now - duel.suddenStartAt) / QUESTION_DURATION_MS);
-    for (let round = 0; round < completedRounds; round += 1) {
-      const idx = REGULAR_QUESTION_COUNT + round;
-      const aAnswer = duel.playerAnswers?.[a]?.[idx];
-      const bAnswer = duel.playerAnswers?.[b]?.[idx];
-      const aCorrect = isCorrectForIndex(duel, db, idx, aAnswer);
-      const bCorrect = isCorrectForIndex(duel, db, idx, bAnswer);
-      if (aCorrect && !bCorrect) {
-        duel.phase = 'finished';
-        duel.winner = a;
-        break;
-      }
-      if (bCorrect && !aCorrect) {
-        duel.phase = 'finished';
-        duel.winner = b;
-        break;
-      }
-    }
-
-    if (duel.phase === 'finished') {
-      const regularScores = computeRegularScores(duel, db);
-      duel.finalScores = {
-        ...regularScores,
-        [duel.winner]: (regularScores[duel.winner] || 0) + 1,
-      };
+      duel.finalTimesMs = times;
+      if (scores[a] > scores[b]) duel.winner = a;
+      else if (scores[b] > scores[a]) duel.winner = b;
+      else duel.winner = times[a] <= times[b] ? a : b;
     }
   }
 
   return duel;
 }
 
-function getAnswerStatus(duel, currentIndex) {
-  return (duel.participants || []).map((name) => ({
-    name,
-    answered: duel.playerAnswers?.[name]?.[currentIndex] !== undefined,
-  }));
+function getQuestionState(duel, db, now, playerName) {
+  if (duel.phase !== 'question') return { question: null, subPhase: null, timerLeft: null, firstResponder: null, myAnswer: null };
+
+  const elapsed = now - duel.quizStartAt;
+  const questionIndex = Math.floor(elapsed / SLOT_DURATION_MS);
+  if (questionIndex < 0 || questionIndex >= REGULAR_QUESTION_COUNT) {
+    return { question: null, subPhase: null, timerLeft: null, firstResponder: null, myAnswer: null };
+  }
+
+  const msInSlot = elapsed % SLOT_DURATION_MS;
+  const subPhase = msInSlot < ANSWER_DURATION_MS ? 'answer' : 'reveal';
+  const timerLeft = subPhase === 'answer'
+    ? Math.max(0, 10 - Math.floor(msInSlot / 1000))
+    : Math.max(0, 2 - Math.floor((msInSlot - ANSWER_DURATION_MS) / 1000));
+
+  const q = getQuestionById(db, duel.regularQuestionIds[questionIndex]);
+  if (!q) return { question: null, subPhase, timerLeft, firstResponder: null, myAnswer: null };
+
+  const answerObjects = (duel.participants || [])
+    .map((name) => ({ name, entry: duel.playerAnswers?.[name]?.[questionIndex] }))
+    .filter((x) => x.entry && Number.isFinite(x.entry.answeredAt));
+  answerObjects.sort((a, b) => a.entry.answeredAt - b.entry.answeredAt);
+  const firstResponder = answerObjects[0]?.name || null;
+
+  const myAnswer = playerName ? duel.playerAnswers?.[playerName]?.[questionIndex] || null : null;
+
+  const question = {
+    index: questionIndex + 1,
+    total: REGULAR_QUESTION_COUNT,
+    mainCategory: q.mainCategory,
+    subCategory: q.subCategory,
+    difficulty: q.difficulty,
+    stem: q.stem,
+    choices: q.choices,
+    correctIndex: subPhase === 'reveal' ? q.correctIndex : null,
+  };
+
+  return { question, subPhase, timerLeft, firstResponder, myAnswer };
 }
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const db = loadDb();
 
-  if (req.method === 'GET' && url.pathname === '/api/health') {
-    return json(res, 200, { ok: true });
-  }
+  if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true });
 
   if (req.method === 'GET' && url.pathname === '/api/categories') {
     const grouped = {};
@@ -251,25 +224,24 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/duels') {
     const body = await parseBody(req).catch((e) => json(res, 400, { error: e.message }));
     if (!body || res.writableEnded) return;
-
     const hostName = (body.hostName || 'Oyuncu 1').toString().slice(0, 30);
     const code = `KPSS-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     const duel = {
       id: randomUUID(),
       code,
-      hostName,
       participants: [hostName],
       regularQuestionIds: pickQuestionIds(db.questions, REGULAR_QUESTION_COUNT),
-      suddenQuestionIds: pickQuestionIds(db.questions, 50),
       playerAnswers: { [hostName]: [] },
       phase: 'waiting',
       createdAt: Date.now(),
       winner: null,
       finalScores: null,
+      finalTimesMs: null,
+      joinNotice: null,
     };
     db.duels.push(duel);
     saveDb(db);
-    return json(res, 201, { code, duelId: duel.id });
+    return json(res, 201, { code });
   }
 
   if (req.method === 'POST' && url.pathname.match(/^\/api\/duels\/[^/]+\/join$/)) {
@@ -279,17 +251,17 @@ const server = http.createServer(async (req, res) => {
 
     const body = await parseBody(req).catch((e) => json(res, 400, { error: e.message }));
     if (!body || res.writableEnded) return;
-
     const name = (body.name || 'Oyuncu').toString().slice(0, 30);
+
     if (!duel.participants.includes(name)) {
-      if (duel.participants.length >= 2) return json(res, 400, { error: 'Oda dolu (maksimum 2 oyuncu).' });
+      if (duel.participants.length >= 2) return json(res, 400, { error: 'Oda dolu (2 oyuncu).' });
       duel.participants.push(name);
       duel.playerAnswers[name] = [];
     }
 
     updateDuelState(duel, db);
     saveDb(db);
-    return json(res, 200, { code: duel.code, participants: duel.participants, phase: duel.phase });
+    return json(res, 200, { code: duel.code, participants: duel.participants, phase: duel.phase, joinNotice: duel.joinNotice });
   }
 
   if (req.method === 'POST' && url.pathname.match(/^\/api\/duels\/[^/]+\/answer$/)) {
@@ -305,17 +277,24 @@ const server = http.createServer(async (req, res) => {
     if (!duel.participants.includes(name)) return json(res, 400, { error: 'Oyuncu odada değil.' });
 
     updateDuelState(duel, db);
-    if (!['question', 'sudden_death'].includes(duel.phase)) return json(res, 400, { error: 'Cevap için uygun aşama değil.' });
+    if (duel.phase !== 'question') return json(res, 400, { error: 'Şu an cevap aşaması değil.' });
 
-    const currentIndex = computeCurrentIndex(duel, Date.now());
-    if (currentIndex < 0) return json(res, 400, { error: 'Soru henüz başlamadı.' });
+    const now = Date.now();
+    const elapsed = now - duel.quizStartAt;
+    const qIndex = Math.floor(elapsed / SLOT_DURATION_MS);
+    const msInSlot = elapsed % SLOT_DURATION_MS;
+    if (qIndex < 0 || qIndex >= REGULAR_QUESTION_COUNT) return json(res, 400, { error: 'Soru aralığı dışında.' });
+    if (msInSlot >= ANSWER_DURATION_MS) return json(res, 400, { error: 'Cevap süresi bitti.' });
 
     duel.playerAnswers[name] = duel.playerAnswers[name] || [];
-    if (duel.playerAnswers[name][currentIndex] === undefined) {
-      duel.playerAnswers[name][currentIndex] = Number.isFinite(choiceIndex) ? choiceIndex : null;
+    if (!duel.playerAnswers[name][qIndex]) {
+      duel.playerAnswers[name][qIndex] = {
+        choiceIndex: Number.isFinite(choiceIndex) ? choiceIndex : null,
+        answeredAt: now,
+        responseMs: msInSlot,
+      };
     }
 
-    updateDuelState(duel, db);
     saveDb(db);
     return json(res, 200, { ok: true });
   }
@@ -328,24 +307,11 @@ const server = http.createServer(async (req, res) => {
     updateDuelState(duel, db);
     saveDb(db);
 
+    const playerName = (url.searchParams.get('name') || '').slice(0, 30);
     const now = Date.now();
     const scores = computeRegularScores(duel, db);
-
-    let currentIndex = -1;
-    let timerLeft = null;
-    let question = null;
-    if (['question', 'sudden_death'].includes(duel.phase)) {
-      currentIndex = computeCurrentIndex(duel, now);
-      const phaseStart = duel.phase === 'question' ? duel.questionStartAt : duel.suddenStartAt;
-      const elapsed = now - phaseStart;
-      timerLeft = Math.max(0, 10 - Math.floor((elapsed % QUESTION_DURATION_MS) / 1000));
-      const q = getQuestionForIndex(duel, db, currentIndex);
-      if (q) {
-        const { correctIndex, ...rest } = q;
-        question = { ...rest, index: currentIndex + 1 };
-      }
-    }
-
+    const totalTimesMs = computeTotalTimes(duel);
+    const qState = getQuestionState(duel, db, now, playerName);
     const countdown = duel.phase === 'countdown'
       ? Math.max(0, 3 - Math.floor((now - duel.countdownStartAt) / 1000))
       : null;
@@ -354,14 +320,18 @@ const server = http.createServer(async (req, res) => {
       code: duel.code,
       phase: duel.phase,
       participants: duel.participants,
+      joinNotice: duel.joinNotice,
+      countdown,
+      subPhase: qState.subPhase,
+      timerLeft: qState.timerLeft,
+      question: qState.question,
+      firstResponder: qState.firstResponder,
+      myAnswer: qState.myAnswer,
       scores,
+      totalTimesMs,
       winner: duel.winner,
       finalScores: duel.finalScores,
-      countdown,
-      timerLeft,
-      totalQuestions: REGULAR_QUESTION_COUNT,
-      question,
-      answerStatus: currentIndex >= 0 ? getAnswerStatus(duel, currentIndex) : [],
+      finalTimesMs: duel.finalTimesMs,
     });
   }
 

@@ -160,7 +160,8 @@ async function createInvite() {
   state.duelCode = data.code;
   el.inviteCodeDisplay.textContent = `Davet kodu: ${data.code}`;
   el.joinCodeInput.value = data.code;
-  el.joinStatus.textContent = 'Oda oluşturuldu. Kodu tek tuşla kopyalayabilirsin.';
+  el.joinStatus.textContent = 'Oda oluşturuldu. Düello ekranı açılıyor...';
+  window.open(`/duel.html?code=${encodeURIComponent(state.duelCode)}&name=${encodeURIComponent(hostName)}`, '_blank');
 }
 
 async function copyInviteCode() {
@@ -184,23 +185,12 @@ async function joinInvite() {
 
   state.duelCode = code;
   el.inviteCodeDisplay.textContent = `Aktif oda: ${code}`;
-  el.joinStatus.textContent = 'Odaya başarıyla katıldın. Düello ekranını açabilirsin.';
+  el.joinStatus.textContent = 'Odaya katıldın. Düello ekranı açılıyor...';
+  window.open(`/duel.html?code=${encodeURIComponent(state.duelCode)}&name=${encodeURIComponent(name)}`, '_blank');
 }
 
 async function openDuelWindow() {
-  if (!state.duelCode) {
-    alert('Önce oda oluştur veya koda katıl.');
-    return;
-  }
-  const name = getPlayerName();
-  if (!name) return;
-
-  await api(`/api/duels/${encodeURIComponent(state.duelCode)}/join`, {
-    method: 'POST',
-    body: JSON.stringify({ name }),
-  });
-
-  window.open(`/duel.html?code=${encodeURIComponent(state.duelCode)}&name=${encodeURIComponent(name)}`, '_blank');
+  alert('Artık oda oluşturma veya katılma sonrası düello ekranı otomatik açılıyor.');
 }
 
 function resetApp() {
