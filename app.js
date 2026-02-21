@@ -12,7 +12,7 @@ const state = {
   duelLastQuestionIndex: null,
   duelAnsweredForCurrent: false,
   duelSelectedIndex: null,
-  selectedAvatar: '🧑‍🎓',
+  selectedAvatar: 'avatar-orbit',
 };
 
 const el = {
@@ -200,7 +200,7 @@ function renderQuestion() {
         if (i === idx && idx !== q.correctIndex) item.classList.add('wrong');
       });
       if (idx === q.correctIndex) state.score += 1;
-      el.feedbackText.textContent = idx === q.correctIndex ? '✅ Doğru!' : '❌ Yanlış';
+      el.feedbackText.textContent = idx === q.correctIndex ? 'Doğru cevap' : 'Yanlış cevap';
       el.explanationText.textContent = `Açıklama: ${q.explanation}`;
       el.nextQuestionBtn.classList.remove('hidden');
     });
@@ -226,7 +226,7 @@ async function copyInviteCode() {
     return;
   }
   await navigator.clipboard.writeText(state.duelCode);
-  el.joinStatus.textContent = 'Kod panoya kopyalandı ✅';
+  el.joinStatus.textContent = 'Kod panoya kopyalandı';
 }
 
 function stopDuelPolling() {
@@ -328,7 +328,7 @@ function renderDuelQuestion(room) {
     });
 
     if (Number.isInteger(state.duelSelectedIndex) && state.duelSelectedIndex === q.correctIndex) {
-      el.answeredEarlyText.textContent = '✓ Doğru cevap';
+      el.answeredEarlyText.textContent = 'Doğru cevap';
     } else if (Number.isInteger(state.duelSelectedIndex)) {
       el.answeredEarlyText.textContent = 'Yanlış cevap';
     } else {
@@ -345,7 +345,7 @@ function renderDuelFinished(room) {
     .map((n) => ({ name: n, score: scores[n], time: times[n] ?? 0 }))
     .sort((a, b) => (b.score - a.score) || (a.time - b.time));
 
-  el.duelWinner.textContent = `🏆 Kazanan: ${room.winner || 'Berabere'}`;
+  el.duelWinner.textContent = `Kazanan: ${room.winner || 'Berabere'}`;
   el.duelScoreBoard.innerHTML = rows
     .map((r) => `<li>${r.name}: ${r.score} puan • ${formatSec(r.time)}</li>`)
     .join('');
@@ -452,8 +452,11 @@ function setupProfile() {
   el.avatarGrid?.addEventListener('click', (event) => {
     const button = event.target.closest('.avatar-item');
     if (!button) return;
-    state.selectedAvatar = button.dataset.avatar || '🧑‍🎓';
-    el.profileAvatarPreview.textContent = state.selectedAvatar;
+    const avatarName = button.dataset.avatar || 'avatar-orbit';
+    const initials = button.dataset.initials || 'AO';
+    state.selectedAvatar = avatarName;
+    el.profileAvatarPreview.className = `profile-avatar ${avatarName}`;
+    el.profileAvatarPreview.innerHTML = `<span>${initials}</span>`;
     [...el.avatarGrid.querySelectorAll('.avatar-item')].forEach((item) => {
       item.classList.toggle('active', item === button);
     });
@@ -466,7 +469,7 @@ function setupProfile() {
       return;
     }
     el.profileNameText.textContent = name;
-    el.profileSaveHint.textContent = 'Profil kaydedildi ✅';
+    el.profileSaveHint.textContent = 'Profil kaydedildi';
   });
 }
 

@@ -125,7 +125,7 @@ function renderQuestion(room) {
     });
 
     if (Number.isInteger(state.selectedIndex) && state.selectedIndex === q.correctIndex) {
-      el.answeredEarlyText.textContent = '✓ Doğru cevap';
+      el.answeredEarlyText.textContent = 'Doğru cevap';
       allBtns[state.selectedIndex]?.classList.add('pulse-ok');
     } else if (Number.isInteger(state.selectedIndex)) {
       el.answeredEarlyText.textContent = 'Yanlış cevap';
@@ -145,7 +145,7 @@ function renderFinished(room) {
     .map((n) => ({ n, s: scores[n], t: times[n] ?? 0 }))
     .sort((a, b) => (b.s - a.s) || (a.t - b.t));
 
-  el.duelWinner.textContent = `🏆 Kazanan: ${room.winner}`;
+  el.duelWinner.textContent = `Kazanan: ${room.winner}`;
   el.duelScoreBoard.innerHTML = rows
     .map((r) => `<li>${r.n}: ${r.s} puan • ${formatSec(r.t)}</li>`)
     .join('');
