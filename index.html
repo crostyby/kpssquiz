@@ -4,26 +4,41 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KPSS Quiz Arena</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <header class="topbar">
-      <h1>KPSS Quiz Arena</h1>
-      <p>Oyun oynayarak KPSS çalış: tekli mod + arkadaş düellosu.</p>
+    <div class="bg-particles" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <header class="topbar glass">
+      <p class="eyebrow">KPSS GAMIFIED LEARNING</p>
+      <h1 class="gradient-title">KPSS Quiz Arena</h1>
+      <p>Hızlı, modern, eğlenceli çalışma deneyimi.</p>
     </header>
 
-    <main class="container">
-      <section class="card">
-        <h2>1) Mod Seçimi</h2>
+    <main class="container page-enter">
+      <section class="card card-float">
+        <h2>Mod Seçimi</h2>
         <div class="mode-buttons">
-          <button id="soloModeBtn" class="btn primary">Tekli Çalışma</button>
-          <button id="duelModeBtn" class="btn">Arkadaşla Düello</button>
+          <button id="soloModeBtn" class="btn primary nav-tab active"><span>📘</span> Tekli Çalışma</button>
+          <button id="duelModeBtn" class="btn nav-tab"><span>⚔️</span> Düello</button>
         </div>
       </section>
 
-      <section id="categorySection" class="card hidden">
-        <h2>2) Kategori Seç</h2>
-        <p class="muted">Hem genel kategori hem KPSS alt başlıklarına göre filtrele.</p>
+      <section id="categorySection" class="card card-float hidden">
+        <h2>Kategori Seç</h2>
+        <p class="muted">Konu seç, zorluk belirle ve akışa başla.</p>
+
+        <div class="category-cards">
+          <article class="category-card"><span>🏛️</span><h4>Genel Kültür</h4></article>
+          <article class="category-card"><span>🧠</span><h4>Genel Yetenek</h4></article>
+          <article class="category-card"><span>🎓</span><h4>Eğitim Bilimleri</h4></article>
+        </div>
+
         <div class="category-grid">
           <label>
             Ana Kategori
@@ -48,21 +63,21 @@
         <button id="startQuizBtn" class="btn primary">Teste Başla</button>
       </section>
 
-      <section id="duelSection" class="card hidden">
-        <h2>2) Düello</h2>
-        <p class="muted">Oyuncu adını yaz, oda oluştur veya kodla katıl. Kod doğruysa odaya girilir.</p>
+      <section id="duelSection" class="card card-float hidden">
+        <h2>Düello Lobi</h2>
+        <p class="muted">İsmini gir, oda kur veya koda katıl.</p>
         <label>
           Oyuncu Adı
           <input id="playerNameInput" type="text" placeholder="Örn: Bera" />
         </label>
         <div class="duel-grid">
-          <div>
+          <div class="glass-inner">
             <h3>Davet Oluştur</h3>
             <button id="createInviteBtn" class="btn">Davet Kodu Üret</button>
             <p id="inviteCodeDisplay" class="code-box">Kod henüz oluşturulmadı.</p>
             <button id="copyInviteBtn" class="btn">Kodu Kopyala</button>
           </div>
-          <div>
+          <div class="glass-inner">
             <h3>Davet Koduna Katıl</h3>
             <label>
               Kod
@@ -72,15 +87,24 @@
             <p id="joinStatus" class="muted"></p>
           </div>
         </div>
-        <button id="startDuelQuizBtn" class="btn primary" disabled>Otomatik Açılır (oda oluştur/katıl sonrası)</button>
+        <button id="startDuelQuizBtn" class="btn primary" disabled>Otomatik Açılır</button>
       </section>
 
-      <section id="quizSection" class="card hidden">
+      <section id="quizSection" class="card question-card hidden">
         <div class="row-between">
           <h2 id="quizTitle">Soru</h2>
           <span id="progressBadge" class="badge">1/5</span>
         </div>
-        <p id="questionMeta" class="muted"></p>
+
+        <div class="progress-track" aria-hidden="true">
+          <div id="quizProgressFill" class="progress-fill"></div>
+        </div>
+
+        <div class="row-between">
+          <p id="questionMeta" class="muted"></p>
+          <div class="timer-circle" aria-hidden="true"><span>10</span></div>
+        </div>
+
         <h3 id="questionText"></h3>
         <div id="choicesContainer" class="choices"></div>
         <p id="feedbackText"></p>
@@ -90,23 +114,22 @@
         </div>
       </section>
 
-      <section id="resultSection" class="card hidden">
+      <section id="resultSection" class="card modal-card hidden">
         <h2>Sonuç</h2>
         <p id="resultSummary"></p>
         <div id="duelResultBox" class="hidden"></div>
         <button id="restartBtn" class="btn primary">Yeniden Oyna</button>
       </section>
-
-      <section class="card">
-        <h2>Soru Havuzu Mantığı (Canlı Demo)</h2>
-        <ul>
-          <li>Kategori ağacı: Ana kategori + alt kategori</li>
-          <li>Metadata: zorluk, etiketler, açıklama, kalite skoru</li>
-          <li>Düello: aynı soru setini invite code ile paylaşabilme</li>
-        </ul>
-      </section>
     </main>
 
+    <nav class="bottom-nav glass">
+      <button class="nav-item active"><span>🏠</span><small>Ana</small></button>
+      <button class="nav-item"><span>🧩</span><small>Quiz</small></button>
+      <button class="nav-item"><span>🏆</span><small>Liderlik</small></button>
+      <button class="nav-item"><span>👤</span><small>Profil</small></button>
+    </nav>
+
+    <script src="ui-effects.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

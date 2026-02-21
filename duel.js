@@ -12,6 +12,7 @@ const el = {
   answeredEarlyText: document.getElementById('answeredEarlyText'),
   duelQuizSection: document.getElementById('duelQuizSection'),
   duelProgress: document.getElementById('duelProgress'),
+  duelProgressFill: document.getElementById('duelProgressFill'),
   duelQuestionMeta: document.getElementById('duelQuestionMeta'),
   duelQuestionText: document.getElementById('duelQuestionText'),
   duelChoices: document.getElementById('duelChoices'),
@@ -71,6 +72,7 @@ function renderQuestion(room) {
 
   el.duelQuizSection.classList.remove('hidden');
   el.duelProgress.textContent = `${q.index}/${q.total}`;
+  if (el.duelProgressFill) el.duelProgressFill.style.width = `${(q.index / q.total) * 100}%`;
   el.duelQuestionMeta.textContent = `${q.mainCategory} • ${q.subCategory} • Zorluk ${q.difficulty}`;
   el.duelQuestionText.textContent = q.stem;
   renderLiveScore(room);

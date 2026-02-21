@@ -77,6 +77,14 @@ function refreshSubCategories() {
     .join('');
 }
 
+
+function updateSoloProgressVisual() {
+  const fill = document.getElementById('quizProgressFill');
+  if (!fill || !state.questions.length) return;
+  const pct = ((state.currentIndex + 1) / state.questions.length) * 100;
+  fill.style.width = `${pct}%`;
+}
+
 function setMode(mode) {
   state.mode = mode;
   el.quizSection.classList.add('hidden');
@@ -110,6 +118,7 @@ function renderQuestion() {
   const q = state.questions[state.currentIndex];
   el.quizTitle.textContent = 'Tekli Soru';
   el.progressBadge.textContent = `${state.currentIndex + 1}/${state.questions.length}`;
+  updateSoloProgressVisual();
   el.questionMeta.textContent = `${q.mainCategory} • ${q.subCategory} • Zorluk ${q.difficulty}`;
   el.questionText.textContent = q.stem;
   el.feedbackText.textContent = '';
