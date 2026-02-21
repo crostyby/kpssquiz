@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KPSS Quiz Arena</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="bg-particles" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <header class="topbar glass">
+      <p class="eyebrow">KPSS GAMIFIED LEARNING</p>
+      <h1 class="gradient-title">KPSS Quiz Arena</h1>
+      <p>Modern, akıcı ve rekabetçi çalışma deneyimi.</p>
+    </header>
+
+    <main class="container page-enter" id="homeView">
+      <section class="card card-float">
+        <h2>Mod Seçimi</h2>
+        <div class="mode-buttons">
+          <button id="soloModeBtn" class="btn primary nav-tab active"><svg class="inline-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17.5A2.5 2.5 0 0 0 17.5 17H5z" stroke="currentColor" stroke-width="1.8"/><path d="M5 4.5V20a2 2 0 0 0 2 2h12" stroke="currentColor" stroke-width="1.8"/></svg> Tekli Çalışma</button>
+          <button id="duelModeBtn" class="btn nav-tab"><svg class="inline-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 5l5 5-6 6-5-5z" stroke="currentColor" stroke-width="1.8"/><path d="M5 19l8-8" stroke="currentColor" stroke-width="1.8"/></svg> Düello</button>
+        </div>
+      </section>
+
+      <section id="categorySection" class="card card-float hidden">
+        <h2>Kategori Seç</h2>
+        <p class="muted">Konu seç, zorluk belirle ve hızlı tur başlat.</p>
+
+        <div class="category-cards" id="categoryCards">
+          <button class="category-card selected" type="button" data-main="Genel Kültür"><span><svg class="category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 10h18M5 10V7l7-4 7 4v3M6 10v8M12 10v8M18 10v8M4 18h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><h4>Genel Kültür</h4></button>
+          <button class="category-card selected" type="button" data-main="Genel Yetenek"><span><svg class="category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a6 6 0 0 0-3 11.2V17h6v-2.8A6 6 0 0 0 12 3z" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 20h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><h4>Genel Yetenek</h4></button>
+          <button class="category-card selected" type="button" data-main="Eğitim Bilimleri"><span><svg class="category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 9l9-4 9 4-9 4-9-4z" stroke="currentColor" stroke-width="1.7"/><path d="M7 11v4c0 1.5 2.2 3 5 3s5-1.5 5-3v-4" stroke="currentColor" stroke-width="1.7"/></svg></span><h4>Eğitim Bilimleri</h4></button>
+        </div>
+        <p id="categoryHint" class="muted">En az 1 kategori seçmelisin. İstersen 3'ünü de aktif tutabilirsin.</p>
+
+        <div class="category-grid single-filter">
+          <label>
+            Zorluk
+            <select id="difficultySelect">
+              <option value="all">Tümü</option>
+              <option value="1">1 (Kolay)</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5 (Zor)</option>
+            </select>
+          </label>
+        </div>
+        <button id="startQuizBtn" class="btn primary">Teste Başla</button>
+      </section>
+
+      <section id="duelSection" class="card card-float hidden">
+        <h2>Düello Lobi</h2>
+        <p class="muted">İsmini gir, oda kur veya kodla katıl. Düello aynı ekranda açılır.</p>
+        <label>
+          Oyuncu Adı
+          <input id="playerNameInput" type="text" placeholder="Örn: Bera" />
+        </label>
+        <div class="duel-grid">
+          <div class="glass-inner">
+            <h3>Davet Oluştur</h3>
+            <button id="createInviteBtn" class="btn">Davet Kodu Üret</button>
+            <p id="inviteCodeDisplay" class="code-box">Kod henüz oluşturulmadı.</p>
+            <button id="copyInviteBtn" class="btn">Kodu Kopyala</button>
+          </div>
+          <div class="glass-inner">
+            <h3>Davet Koduna Katıl</h3>
+            <label>
+              Kod
+              <input id="joinCodeInput" type="text" placeholder="Örn: KPSS-AB12" />
+            </label>
+            <button id="joinInviteBtn" class="btn">Odaya Katıl</button>
+            <p id="joinStatus" class="muted"></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="quizSection" class="card question-card hidden">
+        <div class="row-between">
+          <h2 id="quizTitle">Soru</h2>
+          <span id="progressBadge" class="badge">1/5</span>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div id="quizProgressFill" class="progress-fill"></div>
+        </div>
+        <div class="row-between">
+          <p id="questionMeta" class="muted"></p>
+          <div class="timer-circle" aria-hidden="true"><span>10</span></div>
+        </div>
+        <h3 id="questionText"></h3>
+        <div id="choicesContainer" class="choices"></div>
+        <p id="feedbackText"></p>
+        <p id="explanationText" class="explanation"></p>
+        <div class="actions">
+          <button id="nextQuestionBtn" class="btn hidden">Sonraki Soru</button>
+        </div>
+      </section>
+
+      <section id="resultSection" class="card modal-card hidden">
+        <h2>Sonuç</h2>
+        <p id="resultSummary"></p>
+        <div id="duelResultBox" class="hidden"></div>
+        <button id="restartBtn" class="btn primary">Yeniden Oyna</button>
+      </section>
+
+      <section id="duelArenaSection" class="card question-card hidden">
+        <div class="row-between">
+          <h2 id="roomTitle">Düello Odası</h2>
+          <span id="duelProgress" class="badge">1/10</span>
+        </div>
+        <div class="progress-track"><div id="duelProgressFill" class="progress-fill"></div></div>
+        <p id="roomMeta" class="muted"></p>
+
+        <div class="row-between" style="gap:1rem; flex-wrap:wrap;">
+          <div class="code-box" id="leftPlayer">Oyuncu 1: -</div>
+          <div class="code-box" id="rightPlayer">Oyuncu 2: -</div>
+        </div>
+
+        <div class="duel-grid" style="margin-top:0.8rem;">
+          <div>
+            <h3>Aşama</h3>
+            <p id="phaseText" class="code-box">Rakip bekleniyor...</p>
+          </div>
+          <div>
+            <h3>Sayaç</h3>
+            <div class="timer-circle"><span id="countdownText">-</span></div>
+          </div>
+        </div>
+
+        <p id="duelLiveScore" class="code-box"></p>
+        <p id="answeredEarlyText" class="muted"></p>
+
+        <p id="duelQuestionMeta" class="muted"></p>
+        <h3 id="duelQuestionText"></h3>
+        <div id="duelChoices" class="choices"></div>
+
+        <section id="duelResultSection" class="modal-inline hidden">
+          <h3>Maç Sonu</h3>
+          <p id="duelWinner"></p>
+          <ul id="duelScoreBoard"></ul>
+          <button id="closeDuelBtn" class="btn primary">Lobiye Dön</button>
+        </section>
+      </section>
+    </main>
+
+    <main class="container hidden" id="leaderboardView">
+      <section class="card card-float">
+        <h2>Liderlik</h2>
+        <p class="muted">Demo ekranı: görsel hiyerarşi için hazırlanmıştır.</p>
+        <div class="mode-buttons" style="margin-bottom:.6rem;">
+          <button class="btn primary lb-tab active" data-lb-tab="speed">En Hızlı Tamamlayanlar</button>
+          <button class="btn lb-tab" data-lb-tab="accuracy">Doğru Ortalama Liderleri</button>
+        </div>
+
+        <div id="lbSpeed" class="leaderboard-list">
+          <article class="leader-row"><strong>1. Bera</strong><span>Toplam Süre: 01:38</span></article>
+          <article class="leader-row"><strong>2. Ege</strong><span>Toplam Süre: 01:44</span></article>
+          <article class="leader-row"><strong>3. Nisa</strong><span>Toplam Süre: 01:49</span></article>
+        </div>
+
+        <div id="lbAccuracy" class="leaderboard-list hidden">
+          <article class="leader-row"><strong>1. Ayşe</strong><span>Doğru Ortalama: %94</span></article>
+          <article class="leader-row"><strong>2. Mert</strong><span>Doğru Ortalama: %91</span></article>
+          <article class="leader-row"><strong>3. Deniz</strong><span>Doğru Ortalama: %89</span></article>
+        </div>
+      </section>
+    </main>
+
+    <main class="container hidden" id="profileView">
+      <section class="card card-float">
+        <h2>Profil</h2>
+        <p class="muted">Kullanıcı kartı, avatar seçimi ve demo istatistikler.</p>
+
+        <div class="profile-header">
+          <div class="profile-avatar avatar-orbit" id="profileAvatarPreview"><span>AO</span></div>
+          <div>
+            <h3 id="profileNameText">Kullanıcı Adı</h3>
+            <p class="muted">Seviye 12 • 7 Gün Seri</p>
+          </div>
+        </div>
+
+        <label>
+          Kullanıcı Adı
+          <input id="profileNameInput" type="text" placeholder="Örn: KPSSMaster" />
+        </label>
+
+        <h3 style="margin-top:.9rem;">Avatar Seç (10 adet)</h3>
+        <div class="avatar-grid" id="avatarGrid">
+          <button class="avatar-item avatar-orbit active" data-avatar="avatar-orbit" data-initials="AO"><span>AO</span></button>
+          <button class="avatar-item avatar-ember" data-avatar="avatar-ember" data-initials="EB"><span>EB</span></button>
+          <button class="avatar-item avatar-sky" data-avatar="avatar-sky" data-initials="SK"><span>SK</span></button>
+          <button class="avatar-item avatar-moss" data-avatar="avatar-moss" data-initials="MS"><span>MS</span></button>
+          <button class="avatar-item avatar-violet" data-avatar="avatar-violet" data-initials="VT"><span>VT</span></button>
+          <button class="avatar-item avatar-coral" data-avatar="avatar-coral" data-initials="CR"><span>CR</span></button>
+          <button class="avatar-item avatar-ice" data-avatar="avatar-ice" data-initials="IC"><span>IC</span></button>
+          <button class="avatar-item avatar-sunset" data-avatar="avatar-sunset" data-initials="SS"><span>SS</span></button>
+          <button class="avatar-item avatar-neon" data-avatar="avatar-neon" data-initials="NN"><span>NN</span></button>
+          <button class="avatar-item avatar-carbon" data-avatar="avatar-carbon" data-initials="CB"><span>CB</span></button>
+        </div>
+
+        <button id="saveProfileBtn" class="btn primary" style="margin-top:.8rem;">Profili Kaydet</button>
+        <p id="profileSaveHint" class="muted"></p>
+
+        <div class="profile-stats">
+          <article class="stat-card"><span>Toplam Çözülen</span><strong>1240</strong></article>
+          <article class="stat-card"><span>Doğru Oranı</span><strong>%86</strong></article>
+          <article class="stat-card"><span>En İyi Seri</span><strong>27</strong></article>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav glass">
+      <button class="nav-item active" data-view="home" aria-label="Ana sayfa">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon lucide lucide-house-icon lucide-house"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <small>Ana</small>
+      </button>
+      <button class="nav-item" data-view="leaderboard" aria-label="Liderlik">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon lucide lucide-crown-icon lucide-crown"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg>
+        <small>Liderlik</small>
+      </button>
+      <button class="nav-item" data-view="profile" aria-label="Profil">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon lucide lucide-user-round-pen-icon lucide-user-round-pen"><path d="M2 21a8 8 0 0 1 10.821-7.487"/><path d="M21.378 16.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/><circle cx="10" cy="8" r="5"/></svg>
+        <small>Profil</small>
+      </button>
+    </nav>
+
+    <script src="ui-effects.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
