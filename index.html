@@ -17,10 +17,10 @@
     <header class="topbar glass">
       <p class="eyebrow">KPSS GAMIFIED LEARNING</p>
       <h1 class="gradient-title">KPSS Quiz Arena</h1>
-      <p>Hızlı, modern, eğlenceli çalışma deneyimi.</p>
+      <p>Modern, akıcı ve rekabetçi çalışma deneyimi.</p>
     </header>
 
-    <main class="container page-enter">
+    <main class="container page-enter" id="homeView">
       <section class="card card-float">
         <h2>Mod Seçimi</h2>
         <div class="mode-buttons">
@@ -31,7 +31,7 @@
 
       <section id="categorySection" class="card card-float hidden">
         <h2>Kategori Seç</h2>
-        <p class="muted">Konu seç, zorluk belirle ve akışa başla.</p>
+        <p class="muted">Konu seç, zorluk belirle ve hızlı tur başlat.</p>
 
         <div class="category-cards">
           <article class="category-card"><span>🏛️</span><h4>Genel Kültür</h4></article>
@@ -65,7 +65,7 @@
 
       <section id="duelSection" class="card card-float hidden">
         <h2>Düello Lobi</h2>
-        <p class="muted">İsmini gir, oda kur veya koda katıl.</p>
+        <p class="muted">İsmini gir, oda kur veya kodla katıl. Düello aynı ekranda açılır.</p>
         <label>
           Oyuncu Adı
           <input id="playerNameInput" type="text" placeholder="Örn: Bera" />
@@ -87,7 +87,6 @@
             <p id="joinStatus" class="muted"></p>
           </div>
         </div>
-        <button id="startDuelQuizBtn" class="btn primary" disabled>Otomatik Açılır</button>
       </section>
 
       <section id="quizSection" class="card question-card hidden">
@@ -95,16 +94,13 @@
           <h2 id="quizTitle">Soru</h2>
           <span id="progressBadge" class="badge">1/5</span>
         </div>
-
         <div class="progress-track" aria-hidden="true">
           <div id="quizProgressFill" class="progress-fill"></div>
         </div>
-
         <div class="row-between">
           <p id="questionMeta" class="muted"></p>
           <div class="timer-circle" aria-hidden="true"><span>10</span></div>
         </div>
-
         <h3 id="questionText"></h3>
         <div id="choicesContainer" class="choices"></div>
         <p id="feedbackText"></p>
@@ -120,13 +116,117 @@
         <div id="duelResultBox" class="hidden"></div>
         <button id="restartBtn" class="btn primary">Yeniden Oyna</button>
       </section>
+
+      <section id="duelArenaSection" class="card question-card hidden">
+        <div class="row-between">
+          <h2 id="roomTitle">Düello Odası</h2>
+          <span id="duelProgress" class="badge">1/10</span>
+        </div>
+        <div class="progress-track"><div id="duelProgressFill" class="progress-fill"></div></div>
+        <p id="roomMeta" class="muted"></p>
+
+        <div class="row-between" style="gap:1rem; flex-wrap:wrap;">
+          <div class="code-box" id="leftPlayer">Oyuncu 1: -</div>
+          <div class="code-box" id="rightPlayer">Oyuncu 2: -</div>
+        </div>
+
+        <div class="duel-grid" style="margin-top:0.8rem;">
+          <div>
+            <h3>Aşama</h3>
+            <p id="phaseText" class="code-box">Rakip bekleniyor...</p>
+          </div>
+          <div>
+            <h3>Sayaç</h3>
+            <div class="timer-circle"><span id="countdownText">-</span></div>
+          </div>
+        </div>
+
+        <p id="duelLiveScore" class="code-box"></p>
+        <p id="answeredEarlyText" class="muted"></p>
+
+        <p id="duelQuestionMeta" class="muted"></p>
+        <h3 id="duelQuestionText"></h3>
+        <div id="duelChoices" class="choices"></div>
+
+        <section id="duelResultSection" class="modal-inline hidden">
+          <h3>Maç Sonu</h3>
+          <p id="duelWinner"></p>
+          <ul id="duelScoreBoard"></ul>
+          <button id="closeDuelBtn" class="btn primary">Lobiye Dön</button>
+        </section>
+      </section>
+    </main>
+
+    <main class="container hidden" id="leaderboardView">
+      <section class="card card-float">
+        <h2>Liderlik</h2>
+        <p class="muted">Demo ekranı: görsel hiyerarşi için hazırlanmıştır.</p>
+        <div class="mode-buttons" style="margin-bottom:.6rem;">
+          <button class="btn primary lb-tab active" data-lb-tab="speed">⚡ En Hızlı Tamamlayanlar</button>
+          <button class="btn lb-tab" data-lb-tab="accuracy">🎯 Doğru Ortalama Liderleri</button>
+        </div>
+
+        <div id="lbSpeed" class="leaderboard-list">
+          <article class="leader-row"><strong>1. Bera</strong><span>Toplam Süre: 01:38</span></article>
+          <article class="leader-row"><strong>2. Ege</strong><span>Toplam Süre: 01:44</span></article>
+          <article class="leader-row"><strong>3. Nisa</strong><span>Toplam Süre: 01:49</span></article>
+        </div>
+
+        <div id="lbAccuracy" class="leaderboard-list hidden">
+          <article class="leader-row"><strong>1. Ayşe</strong><span>Doğru Ortalama: %94</span></article>
+          <article class="leader-row"><strong>2. Mert</strong><span>Doğru Ortalama: %91</span></article>
+          <article class="leader-row"><strong>3. Deniz</strong><span>Doğru Ortalama: %89</span></article>
+        </div>
+      </section>
+    </main>
+
+    <main class="container hidden" id="profileView">
+      <section class="card card-float">
+        <h2>Profil</h2>
+        <p class="muted">Kullanıcı kartı, avatar seçimi ve demo istatistikler.</p>
+
+        <div class="profile-header">
+          <div class="profile-avatar" id="profileAvatarPreview">🧑‍🎓</div>
+          <div>
+            <h3 id="profileNameText">Kullanıcı Adı</h3>
+            <p class="muted">Seviye 12 • 7 Gün Seri</p>
+          </div>
+        </div>
+
+        <label>
+          Kullanıcı Adı
+          <input id="profileNameInput" type="text" placeholder="Örn: KPSSMaster" />
+        </label>
+
+        <h3 style="margin-top:.9rem;">Avatar Seç (10 adet)</h3>
+        <div class="avatar-grid" id="avatarGrid">
+          <button class="avatar-item" data-avatar="🧑‍💼">🧑‍💼</button>
+          <button class="avatar-item" data-avatar="👨‍🏫">👨‍🏫</button>
+          <button class="avatar-item" data-avatar="🧔">🧔</button>
+          <button class="avatar-item" data-avatar="👨‍💻">👨‍💻</button>
+          <button class="avatar-item" data-avatar="🕵️‍♂️">🕵️‍♂️</button>
+          <button class="avatar-item" data-avatar="👩‍🏫">👩‍🏫</button>
+          <button class="avatar-item" data-avatar="👩‍💼">👩‍💼</button>
+          <button class="avatar-item" data-avatar="👩‍🔬">👩‍🔬</button>
+          <button class="avatar-item" data-avatar="🧕">🧕</button>
+          <button class="avatar-item" data-avatar="👩‍💻">👩‍💻</button>
+        </div>
+
+        <button id="saveProfileBtn" class="btn primary" style="margin-top:.8rem;">Profili Kaydet</button>
+        <p id="profileSaveHint" class="muted"></p>
+
+        <div class="profile-stats">
+          <article class="stat-card"><span>Toplam Çözülen</span><strong>1240</strong></article>
+          <article class="stat-card"><span>Doğru Oranı</span><strong>%86</strong></article>
+          <article class="stat-card"><span>En İyi Seri</span><strong>27</strong></article>
+        </div>
+      </section>
     </main>
 
     <nav class="bottom-nav glass">
-      <button class="nav-item active"><span>🏠</span><small>Ana</small></button>
-      <button class="nav-item"><span>🧩</span><small>Quiz</small></button>
-      <button class="nav-item"><span>🏆</span><small>Liderlik</small></button>
-      <button class="nav-item"><span>👤</span><small>Profil</small></button>
+      <button class="nav-item active" data-view="home"><span>🏠</span><small>Ana</small></button>
+      <button class="nav-item" data-view="leaderboard"><span>🏆</span><small>Liderlik</small></button>
+      <button class="nav-item" data-view="profile"><span>👤</span><small>Profil</small></button>
     </nav>
 
     <script src="ui-effects.js"></script>
