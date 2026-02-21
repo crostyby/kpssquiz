@@ -1,0 +1,163 @@
+{
+  "questions": [
+    {
+      "id": "Q1",
+      "mainCategory": "Genel Kültür",
+      "subCategory": "Tarih > Osmanlı",
+      "difficulty": 2,
+      "tags": [
+        "tarih",
+        "osmanli"
+      ],
+      "stem": "Lale Devri hangi padişah döneminde yaşanmıştır?",
+      "choices": [
+        "III. Ahmed",
+        "IV. Murad",
+        "II. Mahmud",
+        "I. Selim"
+      ],
+      "correctIndex": 0,
+      "explanation": "Lale Devri, III. Ahmed döneminde (1718-1730) yaşanmıştır.",
+      "qualityScore": 4.6
+    },
+    {
+      "id": "Q2",
+      "mainCategory": "Genel Kültür",
+      "subCategory": "Coğrafya > Türkiye Fiziki",
+      "difficulty": 3,
+      "tags": [
+        "cografya",
+        "daglar"
+      ],
+      "stem": "Aşağıdaki dağlardan hangisi volkanik kökenlidir?",
+      "choices": [
+        "Kaçkar",
+        "Ağrı",
+        "Uludağ",
+        "Yıldız"
+      ],
+      "correctIndex": 1,
+      "explanation": "Ağrı Dağı volkanik bir dağdır.",
+      "qualityScore": 4.4
+    },
+    {
+      "id": "Q3",
+      "mainCategory": "Genel Yetenek",
+      "subCategory": "Türkçe > Dil Bilgisi",
+      "difficulty": 2,
+      "tags": [
+        "turkce",
+        "fiilimsi"
+      ],
+      "stem": "Aşağıdakilerden hangisi fiilimsi değildir?",
+      "choices": [
+        "Yazarak",
+        "Gelince",
+        "Kitap",
+        "Gidip"
+      ],
+      "correctIndex": 2,
+      "explanation": "Kitap isimdir; fiilimsi değildir.",
+      "qualityScore": 4.1
+    },
+    {
+      "id": "Q4",
+      "mainCategory": "Genel Yetenek",
+      "subCategory": "Matematik > Problemler",
+      "difficulty": 3,
+      "tags": [
+        "matematik",
+        "yas"
+      ],
+      "stem": "Bir babanın yaşı oğlunun yaşının 3 katıdır. 6 yıl sonra oran 2 olacaksa oğul kaç yaşındadır?",
+      "choices": [
+        "6",
+        "8",
+        "10",
+        "12"
+      ],
+      "correctIndex": 0,
+      "explanation": "x oğul yaşı olsun. Baba 3x. 6 yıl sonra (3x+6)/(x+6)=2 => x=6.",
+      "qualityScore": 4.8
+    },
+    {
+      "id": "Q5",
+      "mainCategory": "Eğitim Bilimleri",
+      "subCategory": "Ölçme ve Değerlendirme",
+      "difficulty": 4,
+      "tags": [
+        "egitim",
+        "gecerlik"
+      ],
+      "stem": "Bir testin ölçmek istediği özelliği ölçme derecesi hangi kavramla ifade edilir?",
+      "choices": [
+        "Güvenirlik",
+        "Geçerlik",
+        "Kullanışlılık",
+        "Objektiflik"
+      ],
+      "correctIndex": 1,
+      "explanation": "Ölçme aracının amaca uygunluğu geçerliktir.",
+      "qualityScore": 4.3
+    },
+    {
+      "id": "Q6",
+      "mainCategory": "Genel Kültür",
+      "subCategory": "Vatandaşlık",
+      "difficulty": 2,
+      "tags": [
+        "anayasa",
+        "hukuk"
+      ],
+      "stem": "Kanun teklif etme yetkisi kime aittir?",
+      "choices": [
+        "Cumhurbaşkanı",
+        "Milletvekilleri",
+        "Anayasa Mahkemesi",
+        "Danıştay"
+      ],
+      "correctIndex": 1,
+      "explanation": "Kanun teklif etme yetkisi milletvekillerine aittir.",
+      "qualityScore": 4.5
+    },
+    {
+      "id": "Q7",
+      "mainCategory": "Genel Kültür",
+      "subCategory": "Güncel Bilgiler",
+      "difficulty": 1,
+      "tags": [
+        "guncel"
+      ],
+      "stem": "Türkiye’nin başkenti neresidir?",
+      "choices": [
+        "İstanbul",
+        "İzmir",
+        "Ankara",
+        "Bursa"
+      ],
+      "correctIndex": 2,
+      "explanation": "Türkiye’nin başkenti Ankara’dır.",
+      "qualityScore": 4.9
+    },
+    {
+      "id": "Q8",
+      "mainCategory": "Genel Yetenek",
+      "subCategory": "Matematik > Sayılar",
+      "difficulty": 1,
+      "tags": [
+        "matematik"
+      ],
+      "stem": "15 + 27 kaçtır?",
+      "choices": [
+        "32",
+        "42",
+        "52",
+        "44"
+      ],
+      "correctIndex": 1,
+      "explanation": "15 + 27 = 42.",
+      "qualityScore": 4.9
+    }
+  ],
+  "duels": []
+}

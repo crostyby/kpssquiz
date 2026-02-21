@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Düello Odası</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="bg-particles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+
+    <main class="container page-enter">
+      <section class="card question-card">
+        <h2 id="roomTitle">Düello Odası</h2>
+        <p id="roomMeta" class="muted"></p>
+
+        <div class="row-between" style="gap:1rem; flex-wrap:wrap;">
+          <div class="code-box" id="leftPlayer">Oyuncu 1: -</div>
+          <div class="code-box" id="rightPlayer">Oyuncu 2: -</div>
+        </div>
+
+        <div class="duel-grid" style="margin-top:0.8rem;">
+          <div>
+            <h3>Aşama</h3>
+            <p id="phaseText" class="code-box">Rakip bekleniyor...</p>
+          </div>
+          <div>
+            <h3>Sayaç</h3>
+            <div class="timer-circle"><span id="countdownText">-</span></div>
+          </div>
+        </div>
+
+        <p id="duelLiveScore" class="code-box"></p>
+        <p id="answeredEarlyText" class="muted"></p>
+      </section>
+
+      <section id="duelQuizSection" class="card question-card hidden">
+        <div class="row-between">
+          <h2>Düello Sorusu</h2>
+          <span id="duelProgress" class="badge">1/10</span>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div id="duelProgressFill" class="progress-fill"></div>
+        </div>
+        <p id="duelQuestionMeta" class="muted"></p>
+        <h3 id="duelQuestionText"></h3>
+        <div id="duelChoices" class="choices"></div>
+      </section>
+
+      <section id="duelResultSection" class="card modal-card hidden">
+        <h2>Maç Sonu</h2>
+        <p id="duelWinner"></p>
+        <ul id="duelScoreBoard"></ul>
+      </section>
+    </main>
+
+    <script src="ui-effects.js"></script>
+    <script src="duel.js"></script>
+  </body>
+</html>
