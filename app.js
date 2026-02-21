@@ -13,6 +13,7 @@ const state = {
   duelAnsweredForCurrent: false,
   duelSelectedIndex: null,
   selectedAvatar: 'avatar-orbit',
+  selectedMainCategories: ['Genel Kültür', 'Genel Yetenek', 'Eğitim Bilimleri'],
 };
 
 const el = {
@@ -26,8 +27,8 @@ const el = {
   categorySection: document.getElementById('categorySection'),
   duelSection: document.getElementById('duelSection'),
 
-  mainCategorySelect: document.getElementById('mainCategorySelect'),
-  subCategorySelect: document.getElementById('subCategorySelect'),
+  categoryCards: [...document.querySelectorAll('#categoryCards .category-card')],
+  categoryHint: document.getElementById('categoryHint'),
   difficultySelect: document.getElementById('difficultySelect'),
   startQuizBtn: document.getElementById('startQuizBtn'),
 
@@ -114,23 +115,28 @@ function switchView(view) {
   });
 }
 
-async function loadCategories() {
-  const data = await api('/api/categories');
-  state.categories = data.categories;
-  const mains = ['all', ...state.categories.map((c) => c.mainCategory)];
-  el.mainCategorySelect.innerHTML = mains
-    .map((item) => `<option value="${item}">${item === 'all' ? 'Tümü' : item}</option>`)
-    .join('');
-  refreshSubCategories();
+function getSelectedCategories() {
+  return el.categoryCards
+    .filter((card) => card.classList.contains('selected'))
+    .map((card) => card.dataset.main)
+    .filter(Boolean);
 }
 
-function refreshSubCategories() {
-  const main = el.mainCategorySelect.value;
-  const match = state.categories.find((c) => c.mainCategory === main);
-  const subs = main === 'all' ? ['all'] : ['all', ...(match?.subCategories || [])];
-  el.subCategorySelect.innerHTML = subs
-    .map((item) => `<option value="${item}">${item === 'all' ? 'Tümü' : item}</option>`)
-    .join('');
+function setupCategoryCards() {
+  el.categoryCards.forEach((card) => {
+    card.addEventListener('click', () => {
+      const active = card.classList.contains('selected');
+      const selected = getSelectedCategories();
+      if (active && selected.length === 1) {
+        el.categoryHint.textContent = 'En az 1 kategori seçmelisin.';
+        return;
+      }
+      card.classList.toggle('selected', !active);
+      const updated = getSelectedCategories();
+      state.selectedMainCategories = updated;
+      el.categoryHint.textContent = `Seçili kategori sayısı: ${updated.length}`;
+    });
+  });
 }
 
 function updateSoloProgressVisual() {
@@ -144,6 +150,8 @@ function setMode(mode) {
   state.mode = mode;
   el.soloModeBtn.classList.toggle('active', mode === 'solo');
   el.duelModeBtn.classList.toggle('active', mode === 'duel');
+  el.soloModeBtn.classList.toggle('primary', mode === 'solo');
+  el.duelModeBtn.classList.toggle('primary', mode === 'duel');
   el.categorySection.classList.toggle('hidden', mode !== 'solo');
   el.duelSection.classList.toggle('hidden', mode !== 'duel');
 
@@ -154,20 +162,43 @@ function setMode(mode) {
 }
 
 async function startSolo() {
-  const query = new URLSearchParams({
-    main: el.mainCategorySelect.value,
-    sub: el.subCategorySelect.value,
-    difficulty: el.difficultySelect.value,
-  }).toString();
-
-  const data = await api(`/api/questions?${query}`);
-  if (!data.questions.length) {
-    alert('Bu filtrede soru bulunamadı.');
+  const selectedMains = getSelectedCategories();
+  if (!selectedMains.length) {
+    alert('En az 1 kategori seçmelisin.');
     return;
   }
 
-  state.questions = data.questions;
-  state.answers = new Array(data.questions.length).fill(null);
+  const difficulty = el.difficultySelect.value;
+  const questionGroups = await Promise.all(
+    selectedMains.map((main) => {
+      const query = new URLSearchParams({
+        main,
+        sub: 'all',
+        difficulty,
+      }).toString();
+      return api(`/api/questions?${query}`).then((data) => data.questions || []);
+    }),
+  );
+
+  const merged = questionGroups.flat();
+  const unique = [];
+  const seen = new Set();
+  merged.forEach((q) => {
+    if (!seen.has(q.id)) {
+      seen.add(q.id);
+      unique.push(q);
+    }
+  });
+
+  const shuffled = unique.sort(() => Math.random() - 0.5).slice(0, 5);
+
+  if (!shuffled.length) {
+    alert('Seçtiğin kategorilerde soru bulunamadı.');
+    return;
+  }
+
+  state.questions = shuffled;
+  state.answers = new Array(shuffled.length).fill(null);
   state.currentIndex = 0;
   state.score = 0;
   el.quizSection.classList.remove('hidden');
@@ -483,7 +514,6 @@ el.navItems.forEach((item) => {
 });
 el.soloModeBtn.addEventListener('click', () => setMode('solo'));
 el.duelModeBtn.addEventListener('click', () => setMode('duel'));
-el.mainCategorySelect.addEventListener('change', refreshSubCategories);
 el.startQuizBtn.addEventListener('click', () => startSolo().catch((e) => alert(e.message)));
 el.nextQuestionBtn.addEventListener('click', nextSoloQuestion);
 el.restartBtn.addEventListener('click', resetApp);
@@ -497,7 +527,7 @@ el.closeDuelBtn?.addEventListener('click', () => {
 });
 
 setupLeaderboardTabs();
+setupCategoryCards();
 setupProfile();
-loadCategories().catch((e) => alert(`API hatası: ${e.message}`));
 switchView('home');
 setMode('solo');

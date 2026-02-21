@@ -33,21 +33,14 @@
         <h2>Kategori Seç</h2>
         <p class="muted">Konu seç, zorluk belirle ve hızlı tur başlat.</p>
 
-        <div class="category-cards">
-          <article class="category-card"><span><svg class="category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 10h18M5 10V7l7-4 7 4v3M6 10v8M12 10v8M18 10v8M4 18h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><h4>Genel Kültür</h4></article>
-          <article class="category-card"><span><svg class="category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a6 6 0 0 0-3 11.2V17h6v-2.8A6 6 0 0 0 12 3z" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 20h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><h4>Genel Yetenek</h4></article>
-          <article class="category-card"><span><svg class="category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 9l9-4 9 4-9 4-9-4z" stroke="currentColor" stroke-width="1.7"/><path d="M7 11v4c0 1.5 2.2 3 5 3s5-1.5 5-3v-4" stroke="currentColor" stroke-width="1.7"/></svg></span><h4>Eğitim Bilimleri</h4></article>
+        <div class="category-cards" id="categoryCards">
+          <button class="category-card selected" type="button" data-main="Genel Kültür"><span><svg class="category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 10h18M5 10V7l7-4 7 4v3M6 10v8M12 10v8M18 10v8M4 18h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><h4>Genel Kültür</h4></button>
+          <button class="category-card selected" type="button" data-main="Genel Yetenek"><span><svg class="category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a6 6 0 0 0-3 11.2V17h6v-2.8A6 6 0 0 0 12 3z" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 20h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><h4>Genel Yetenek</h4></button>
+          <button class="category-card selected" type="button" data-main="Eğitim Bilimleri"><span><svg class="category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 9l9-4 9 4-9 4-9-4z" stroke="currentColor" stroke-width="1.7"/><path d="M7 11v4c0 1.5 2.2 3 5 3s5-1.5 5-3v-4" stroke="currentColor" stroke-width="1.7"/></svg></span><h4>Eğitim Bilimleri</h4></button>
         </div>
+        <p id="categoryHint" class="muted">En az 1 kategori seçmelisin. İstersen 3'ünü de aktif tutabilirsin.</p>
 
-        <div class="category-grid">
-          <label>
-            Ana Kategori
-            <select id="mainCategorySelect"></select>
-          </label>
-          <label>
-            Alt Kategori
-            <select id="subCategorySelect"></select>
-          </label>
+        <div class="category-grid single-filter">
           <label>
             Zorluk
             <select id="difficultySelect">
